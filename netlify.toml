@@ -1,0 +1,20 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+```
+
+3. Press **Ctrl + S**
+4. In terminal:
+```
+git add netlify.toml
+```
+```
+git commit -m "Fix netlify config"
+```
+```
+git push
