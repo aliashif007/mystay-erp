@@ -202,7 +202,7 @@ const NAV_TABS = [
 function BottomNav({ screen, setScreen }: { screen: Screen; setScreen: (s: Screen) => void }) {
   const activeTab = NAV_TABS.find(t => t.screen === screen)?.id ?? "dashboard";
   return (
-    <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: C.white, borderTop: `1px solid #F0F0F0`, display: "flex", zIndex: 100 }}>
+    <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 100%, background: C.white, borderTop: `1px solid #F0F0F0`, display: "flex", zIndex: 100 }}>
       {NAV_TABS.map(t => {
         const active = activeTab === t.id;
         return (
@@ -867,7 +867,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ fontFamily: FONT, maxWidth: 480, margin: "0 auto", minHeight: "100vh", background: C.bg, position: "relative" }}>
+    <div style={{ fontFamily: FONT, maxWidth: 100%, margin: "0 auto", minHeight: "100vh", background: C.bg, position: "relative" }}>
       {screen === "dashboard"       && <Dashboard guests={guests} setScreen={setScreen} setActiveGuest={setActiveGuest} setPrefill={setPrefill} />}
       {screen === "guests"          && <GuestsScreen guests={guests} setScreen={setScreen} setActiveGuest={setActiveGuest} />}
       {screen === "insights"        && <InsightsScreen costs={costs} setScreen={setScreen} />}
