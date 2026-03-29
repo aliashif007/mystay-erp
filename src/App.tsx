@@ -867,7 +867,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ fontFamily: FONT, maxWidth: "100%", margin: "0 auto", minHeight: "100vh", background: C.bg, position: "relative" }}>
+    <div style={{ fontFamily: FONT, width: "100%", margin: "0", minHeight: "100vh", background: C.bg, position: "relative" }}>
       {screen === "dashboard"       && <Dashboard guests={guests} setScreen={setScreen} setActiveGuest={setActiveGuest} setPrefill={setPrefill} />}
       {screen === "guests"          && <GuestsScreen guests={guests} setScreen={setScreen} setActiveGuest={setActiveGuest} />}
       {screen === "insights"        && <InsightsScreen costs={costs} setScreen={setScreen} />}
