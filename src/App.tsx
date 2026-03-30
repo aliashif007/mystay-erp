@@ -58,7 +58,6 @@ type DailyExpense = { id: string; name: string; amount: number; date: string };
 
 /* ─── HELPERS ────────────────────────────────────────────── */
 const today    = new Date().toISOString().split("T")[0];
-const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
 const in2days  = new Date(Date.now() + 2 * 86400000).toISOString().split("T")[0];
 
 const ALL_ROOMS = ["305", "201", "101", "102", "103"];
@@ -1161,7 +1160,7 @@ export default function App() {
   const [dailyExpenses,   setDailyExpenses]   = useState<DailyExpense[]>([]);
   const [hotelName,       setHotelName]       = useState("My Hotel");
   const [propertyId,      setPropertyId]      = useState("");
-  const [isFirstTime,     setIsFirstTime]     = useState(false);
+  const [,     setIsFirstTime]     = useState(false);
   const [isTest,          setIsTest]          = useState(false);
 
   /* ── Auth listener ── */
