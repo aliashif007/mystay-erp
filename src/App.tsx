@@ -12,22 +12,21 @@ if (!document.getElementById("pjs-font")) {
 
 /* ─── DESIGN TOKENS ─────────────────────────────────────── */
 const C = {
-  primary:   "#222222",
-  accent:    "#FF385C",
-  blue:      "#0066FF",
-  bg:        "#F7F7F7",
-  white:     "#FFFFFF",
-  success:   "#008A05",
-  warning:   "#B8860B",
+  primary: "#222222",
+  accent: "#FF385C",
+  blue: "#0066FF",
+  bg: "#F7F7F7",
+  white: "#FFFFFF",
+  success: "#008A05",
+  warning: "#B8860B",
   warningBg: "#FFF3CC",
-  error:     "#D32F2F",
-  dark:      "#222222",
-  mid:       "#717171",
-  light:     "#A0A0A0",
-  border:    "#DDDDDD",
+  error: "#D32F2F",
+  dark: "#222222",
+  mid: "#717171",
+  light: "#A0A0A0",
+  border: "#DDDDDD",
 };
 const FONT = "'Plus Jakarta Sans', sans-serif";
-const TEST_EMAIL = "testmystay@gmail.com";
 
 /* ─── TYPES ──────────────────────────────────────────────── */
 type Status = "Arriving" | "Staying" | "Checked Out";
@@ -36,7 +35,7 @@ type Screen = "dashboard" | "checkin" | "confirmation" | "checkout" | "checkoutS
 type Guest = {
   id: string; name: string; room: string; status: Status; source: string;
   formComplete?: boolean; phone?: string; checkin?: string; checkout?: string;
-  nights?: number; totalCharged?: number; guestCount?: number;
+  nights?: number; totalCharged?: number; guestCount?: number; nationality?: string;
 };
 type ExtraCharge = {
   id: number; name: string;
@@ -55,24 +54,20 @@ type CheckInPrefill = {
 } | null;
 type CostItem = { id: string; name: string; amount: number };
 type DailyExpense = { id: string; name: string; amount: number; date: string };
+type DailyRevenue = { id: string; amount: number; date: string; source: string; note: string; guestName?: string };
+type PropertyInfo = { id: string; name: string; gstin: string; legalName: string; address: string; invoicePrefix: string; invoiceCounter: number };
 
 /* ─── HELPERS ────────────────────────────────────────────── */
-const today    = new Date().toISOString().split("T")[0];
-const in2days  = new Date(Date.now() + 2 * 86400000).toISOString().split("T")[0];
+const today = new Date().toISOString().split("T")[0];
+const in2days = new Date(Date.now() + 2 * 86400000).toISOString().split("T")[0];
 
 const ALL_ROOMS = ["305", "201", "101", "102", "103"];
-const DAILY_REV = [
-  { date: "27 Mar", amount: 12400 }, { date: "26 Mar", amount: 9800 },
-  { date: "25 Mar", amount: 14200 }, { date: "24 Mar", amount: 11600 },
-  { date: "23 Mar", amount: 8900  }, { date: "22 Mar", amount: 15100 },
-  { date: "21 Mar", amount: 10200 },
-];
-const MAX_DAY = Math.max(...DAILY_REV.map(d => d.amount));
 const MONTHLY_REV = [
   { month: "Mar", amount: 124500 }, { month: "Feb", amount: 98400 },
   { month: "Jan", amount: 112000 }, { month: "Dec", amount: 145000 },
-  { month: "Nov", amount: 89000  }, { month: "Oct", amount: 103000 },
+  { month: "Nov", amount: 89000 }, { month: "Oct", amount: 103000 },
 ];
+const COUNTRIES = ["India", "Nepal", "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cambodia", "Cameroon", "Canada", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Djibouti", "Dominican Republic", "DR Congo", "Ecuador", "Egypt", "El Salvador", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Guatemala", "Guinea", "Haiti", "Honduras", "Hungary", "Iceland", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Mauritania", "Mauritius", "Mexico", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saudi Arabia", "Senegal", "Serbia", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Togo", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"];
 
 function getRoomState(r: string, guests: Guest[]): "vacant" | "arriving" | "occupied" {
   const g = guests.find(g => g.room === r && g.status !== "Checked Out");
@@ -180,9 +175,9 @@ function RoomTile({ roomNum, state }: { roomNum: string; state: "vacant" | "arri
 /* ─── BOTTOM NAV ─────────────────────────────────────────── */
 const NAV_TABS = [
   { id: "dashboard", label: "MyStay", icon: "⊞", screen: "dashboard" as Screen },
-  { id: "guests",    label: "Guests",  icon: "👤", screen: "guests"    as Screen },
-  { id: "insights",  label: "Insights",icon: "📊", screen: "insights"  as Screen },
-  { id: "menu",      label: "Menu",    icon: "☰",  screen: "menu"      as Screen },
+  { id: "guests", label: "Guests", icon: "👤", screen: "guests" as Screen },
+  { id: "insights", label: "Insights", icon: "📊", screen: "insights" as Screen },
+  { id: "menu", label: "Menu", icon: "☰", screen: "menu" as Screen },
 ];
 
 function BottomNav({ screen, setScreen }: { screen: Screen; setScreen: (s: Screen) => void }) {
@@ -247,10 +242,10 @@ function LoginScreen() {
             style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, width: "100%", padding: "14px", borderRadius: 12, background: C.white, border: `1.5px solid ${C.border}`, cursor: loading ? "not-allowed" : "pointer", fontSize: 15, fontWeight: 600, color: C.dark, fontFamily: FONT, opacity: loading ? 0.7 : 1 }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
             {loading ? "Signing in..." : "Continue with Google"}
           </button>
@@ -273,16 +268,16 @@ function LoginScreen() {
 /* ─── ONBOARDING SCREEN ──────────────────────────────────── */
 function OnboardingScreen({ user, isTest, onComplete }: { user: User; isTest: boolean; onComplete: (costs: CostItem[]) => void }) {
   const [hotelName, setHotelName] = useState(isTest ? "Heritage Grand" : "");
-  const [location,  setLocation]  = useState(isTest ? "Jaipur, Rajasthan" : "");
+  const [location, setLocation] = useState(isTest ? "Jaipur, Rajasthan" : "");
   const [costs, setCosts] = useState<{ name: string; amount: string }[]>([
-    { name: "Monthly Rent",     amount: isTest ? "45000" : "" },
-    { name: "Electricity",      amount: isTest ? "12000" : "" },
-    { name: "Water Bill",       amount: isTest ? "3000"  : "" },
-    { name: "Staff Salaries",   amount: isTest ? "60000" : "" },
-    { name: "Internet & Cable", amount: isTest ? "2000"  : "" },
+    { name: "Monthly Rent", amount: isTest ? "45000" : "" },
+    { name: "Electricity", amount: isTest ? "12000" : "" },
+    { name: "Water Bill", amount: isTest ? "3000" : "" },
+    { name: "Staff Salaries", amount: isTest ? "60000" : "" },
+    { name: "Internet & Cable", amount: isTest ? "2000" : "" },
   ]);
   const [saving, setSaving] = useState(false);
-  const [toast,  setToast]  = useState("");
+  const [toast, setToast] = useState("");
 
   const addCost = () => setCosts(c => [...c, { name: "", amount: "" }]);
   const updateCost = (i: number, field: "name" | "amount", val: string) =>
@@ -391,8 +386,8 @@ function GuestCard({ guest, onCheckin, onCheckout }: { guest: Guest; onCheckin?:
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingLeft: 52 }}>
         <div>{guest.formComplete && <span style={{ fontSize: 12, color: C.success, fontWeight: 600, fontFamily: FONT }}>✓ Form Complete</span>}</div>
         <div style={{ display: "flex", gap: 8 }}>
-          {guest.status === "Arriving"  && onCheckin  && <button style={smallBtn("primary")} onClick={onCheckin}>Check-in →</button>}
-          {guest.status === "Staying"   && onCheckout && <button style={smallBtn("outline")} onClick={onCheckout}>Check-out →</button>}
+          {guest.status === "Arriving" && onCheckin && <button style={smallBtn("primary")} onClick={onCheckin}>Check-in →</button>}
+          {guest.status === "Staying" && onCheckout && <button style={smallBtn("outline")} onClick={onCheckout}>Check-out →</button>}
         </div>
       </div>
     </div>
@@ -400,58 +395,123 @@ function GuestCard({ guest, onCheckin, onCheckout }: { guest: Guest; onCheckin?:
 }
 
 /* ─── DASHBOARD ──────────────────────────────────────────── */
-function Dashboard({ guests, setScreen, setActiveGuest, setPrefill, hotelName, isTest }: {
+function Dashboard({ guests, setScreen, setActiveGuest, setPrefill, hotelName, isTest, dailyRevenue, setDailyRevenue, dailyExpenses, propertyId, user, setPrevScreen }: {
   guests: Guest[]; setScreen: (s: Screen) => void;
   setActiveGuest: (g: Guest | null) => void; setPrefill: (p: CheckInPrefill) => void;
   hotelName: string; isTest: boolean;
+  dailyRevenue: DailyRevenue[]; setDailyRevenue: (r: DailyRevenue[]) => void;
+  dailyExpenses: DailyExpense[];
+  propertyId: string; user: User;
+  setPrevScreen: (s: Screen) => void;
 }) {
   const [revExpanded, setRevExpanded] = useState(false);
-  const roomStates    = ALL_ROOMS.map(r => ({ num: r, state: getRoomState(r, guests) }));
-  const vacantCount   = roomStates.filter(r => r.state === "vacant").length;
+  const [addingRev, setAddingRev] = useState(false);
+  const [manualAmt, setManualAmt] = useState("");
+  const [manualNote, setManualNote] = useState("");
+  const [revToast, setRevToast] = useState("");
+
+  const todayRevenue = dailyRevenue.filter(r => r.date === today).reduce((s, r) => s + r.amount, 0);
+  const weekRevenue = dailyRevenue.filter(r => {
+    const d = new Date(r.date);
+    const cutoff = new Date(Date.now() - 7 * 86400000);
+    return d >= cutoff;
+  }).reduce((s, r) => s + r.amount, 0);
+  const todayExpensesTotal = dailyExpenses.filter(e => e.date === today).reduce((s, e) => s + e.amount, 0);
+
+  const addManualRevenue = async () => {
+    if (!manualAmt) return;
+    const entry = {
+      property_id: propertyId, user_id: user.id,
+      date: today, amount: parseFloat(manualAmt),
+      source: "manual", note: manualNote || "Manual entry",
+      checkout_guest_name: "", is_test: isTest,
+    };
+    const { data } = await supabase.from("daily_revenue").insert(entry).select().single();
+    if (data) {
+      setDailyRevenue([{ id: data.id, amount: data.amount, date: data.date, source: data.source, note: data.note ?? "", guestName: "" }, ...dailyRevenue]);
+      setManualAmt(""); setManualNote("");
+      setAddingRev(false);
+      setRevToast("✓ Revenue added"); setTimeout(() => setRevToast(""), 2000);
+    }
+  };
+  const roomStates = ALL_ROOMS.map(r => ({ num: r, state: getRoomState(r, guests) }));
+  const vacantCount = roomStates.filter(r => r.state === "vacant").length;
   const arrivingCount = roomStates.filter(r => r.state === "arriving").length;
   const occupiedCount = roomStates.filter(r => r.state === "occupied").length;
 
   return (
     <div style={{ paddingBottom: 80, minHeight: "100vh", background: C.bg, fontFamily: FONT }}>
       <div style={hdr}>
-        <button style={hdrIcon}>☰</button>
+        <span style={{ width: 36 }} />
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 17, fontWeight: 700, color: C.dark }}>{hotelName}</div>
           {isTest && <div style={{ fontSize: 10, color: C.warning, fontWeight: 600 }}>🧪 Test Mode</div>}
         </div>
-        <button style={hdrIcon}>⊞</button>
+        <span style={{ width: 36 }} />
       </div>
       <div style={{ padding: "12px 12px 0" }}>
         <div style={{ background: C.white, borderRadius: 20, padding: 20, marginBottom: 14, boxShadow: "0 2px 16px rgba(0,0,0,0.07)", cursor: "pointer" }} onClick={() => setRevExpanded(e => !e)}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
-              <div style={{ color: C.light, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 6 }}>Revenue This Week</div>
-              <div style={{ color: C.dark, fontSize: 30, fontWeight: 700, lineHeight: 1 }}>₹1,24,500</div>
-              <div style={{ color: C.success, fontSize: 12, marginTop: 6, fontWeight: 600 }}>↑ 12% from last week</div>
+              <div style={{ color: C.light, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 6 }}>Today's Revenue</div>
+              <div style={{ color: todayRevenue > 0 ? C.dark : C.light, fontSize: 30, fontWeight: 700, lineHeight: 1 }}>{fmt(todayRevenue)}</div>
+              <div style={{ color: C.mid, fontSize: 12, marginTop: 6, fontWeight: 500 }}>This week: {fmt(weekRevenue)}</div>
             </div>
             <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#F7F7F7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: C.mid, transition: "transform 0.2s", transform: revExpanded ? "rotate(180deg)" : "rotate(0deg)" }}>▾</div>
           </div>
           {revExpanded && (
-            <div style={{ marginTop: 16, borderTop: `1px solid #F0F0F0`, paddingTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-              {DAILY_REV.map(d => (
-                <div key={d.date}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                    <span style={{ color: C.mid, fontSize: 12, fontWeight: 500 }}>{d.date}</span>
-                    <span style={{ color: C.dark, fontSize: 12, fontWeight: 700 }}>{fmt(d.amount)}</span>
-                  </div>
-                  <div style={{ height: 4, background: "#F0F0F0", borderRadius: 2, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${(d.amount / MAX_DAY) * 100}%`, background: C.accent, borderRadius: 2 }} />
-                  </div>
+            <div style={{ marginTop: 16, borderTop: `1px solid #F0F0F0`, paddingTop: 14 }}>
+              {revToast && <div style={{ color: C.success, fontSize: 12, fontWeight: 600, marginBottom: 10 }}>{revToast}</div>}
+
+              {/* Today's revenue entries */}
+              {dailyRevenue.filter(r => r.date === today).length === 0 && (
+                <div style={{ fontSize: 12, color: C.light, textAlign: "center", padding: "10px 0" }}>No revenue logged today</div>
+              )}
+              {dailyRevenue.filter(r => r.date === today).map(r => (
+                <div key={r.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, color: C.mid }}>{r.source === "checkout" ? `🏷 ${r.guestName}` : `✏️ ${r.note}`}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: C.dark }}>{fmt(r.amount)}</span>
                 </div>
               ))}
+
+              {/* Add manual revenue */}
+              {addingRev ? (
+                <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input type="number" placeholder="₹ Amount" value={manualAmt} onChange={e => setManualAmt(e.target.value)} style={{ ...inp, flex: 1, fontSize: 13, padding: "10px 12px" }} />
+                    <input placeholder="Note (optional)" value={manualNote} onChange={e => setManualNote(e.target.value)} style={{ ...inp, flex: 2, fontSize: 13, padding: "10px 12px" }} />
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={addManualRevenue} style={{ flex: 1, padding: "10px", borderRadius: 8, background: C.accent, color: "#fff", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: FONT }}>Add</button>
+                    <button onClick={() => setAddingRev(false)} style={{ flex: 1, padding: "10px", borderRadius: 8, background: "transparent", color: C.mid, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: 13, fontFamily: FONT }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setAddingRev(true)} style={{ marginTop: 10, width: "100%", padding: "10px", borderRadius: 8, background: "transparent", color: C.accent, border: `1.5px dashed ${C.accent}`, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: FONT }}>+ Add Revenue Manually</button>
+              )}
             </div>
           )}
+        </div>
+        <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+          <div style={{ background: C.white, borderRadius: 16, padding: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.07)", flex: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.light, textTransform: "uppercase" as const, letterSpacing: "0.6px", marginBottom: 6, fontFamily: FONT }}>Revenue This Week</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: C.dark, fontFamily: FONT }}>{fmt(weekRevenue)}</div>
+            <div style={{ fontSize: 11, color: C.mid, marginTop: 4, fontFamily: FONT }}>Last 7 days</div>
+          </div>
+          <div onClick={() => { setPrevScreen("dashboard"); setScreen("dailyExpenses"); }} style={{ background: C.white, borderRadius: 16, padding: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.07)", flex: 1, cursor: "pointer" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.light, textTransform: "uppercase" as const, letterSpacing: "0.6px", marginBottom: 6, fontFamily: FONT }}>Daily Expenses</div>
+              <span style={{ color: C.light, fontSize: 16 }}>›</span>
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: todayExpensesTotal > 0 ? C.error : C.light, fontFamily: FONT }}>{fmt(todayExpensesTotal)}</div>
+            <div style={{ fontSize: 11, color: C.error, marginTop: 4, fontFamily: FONT }}>Today</div>
+          </div>
         </div>
         <div style={{ ...card, marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: C.dark, fontFamily: FONT }}>Rooms</div>
             <div style={{ display: "flex", gap: 6 }}>
-              {vacantCount   > 0 && <span style={pill("#E6F4EA", C.success)}>{vacantCount} Free</span>}
+              {vacantCount > 0 && <span style={pill("#E6F4EA", C.success)}>{vacantCount} Free</span>}
               {arrivingCount > 0 && <span style={pill(C.warningBg, C.warning)}>{arrivingCount} Arriving</span>}
               {occupiedCount > 0 && <span style={pill("#EEF4FF", C.blue)}>{occupiedCount} Occupied</span>}
             </div>
@@ -460,13 +520,17 @@ function Dashboard({ guests, setScreen, setActiveGuest, setPrefill, hotelName, i
             {roomStates.map(r => <RoomTile key={r.num} roomNum={r.num} state={r.state} />)}
           </div>
         </div>
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ ...card, marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: C.dark, fontFamily: FONT }}>Today's Guests</div>
-            <div style={{ fontSize: 12, color: C.light, fontFamily: FONT }}>{new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</div>
+            <div style={{ display: "flex", gap: 6 }}>
+              {guests.filter(g => g.status === "Staying").length > 0 && <span style={pill("#E6F4EA", C.success)}>{guests.filter(g => g.status === "Staying").length} Staying</span>}
+              {guests.filter(g => g.status === "Arriving").length > 0 && <span style={pill(C.warningBg, C.warning)}>{guests.filter(g => g.status === "Arriving").length} Arriving</span>}
+              {guests.filter(g => g.status === "Checked Out").length > 0 && <span style={pill("#EEF4FF", C.blue)}>{guests.filter(g => g.status === "Checked Out").length} Checked Out</span>}
+            </div>
           </div>
           {guests.length === 0 && (
-            <div style={{ textAlign: "center", padding: "40px 0", color: C.light, fontSize: 14, fontFamily: FONT }}>No guests yet. Add your first check-in.</div>
+            <div style={{ textAlign: "center", padding: "20px 0", color: C.light, fontSize: 14, fontFamily: FONT }}>No guests yet. Add your first check-in.</div>
           )}
           {guests.map(g => (
             <GuestCard key={g.id} guest={g}
@@ -509,7 +573,7 @@ function GuestsScreen({ guests, setScreen, setActiveGuest }: { guests: Guest[]; 
             </div>
             {(g.checkin || g.checkout) && <div style={{ fontSize: 12, color: C.light, marginBottom: 10, paddingLeft: 52 }}>{g.checkin && fmtDate(g.checkin)} → {g.checkout && fmtDate(g.checkout)}</div>}
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              {g.status === "Staying"     && <button style={smallBtn("primary")} onClick={() => { setActiveGuest(g); setScreen("checkout"); }}>Check-out →</button>}
+              {g.status === "Staying" && <button style={smallBtn("primary")} onClick={() => { setActiveGuest(g); setScreen("checkout"); }}>Check-out →</button>}
               {g.status === "Checked Out" && <button style={smallBtn("outline")}>View Details</button>}
             </div>
           </div>
@@ -521,29 +585,52 @@ function GuestsScreen({ guests, setScreen, setActiveGuest }: { guests: Guest[]; 
 }
 
 /* ─── INSIGHTS SCREEN ────────────────────────────────────── */
-function InsightsScreen({ costs, dailyExpenses, setScreen }: { costs: CostItem[]; dailyExpenses: DailyExpense[]; setScreen: (s: Screen) => void }) {
+function InsightsScreen({ costs, dailyExpenses, dailyRevenue, setScreen }: { costs: CostItem[]; dailyExpenses: DailyExpense[]; dailyRevenue: DailyRevenue[]; setScreen: (s: Screen) => void }) {
   const [view, setView] = useState<"week" | "month" | "custom">("week");
   const [customStart, setCustomStart] = useState("2026-03-01");
-  const [customEnd,   setCustomEnd]   = useState(today);
+  const [customEnd, setCustomEnd] = useState(today);
 
-  const totalMonthlyCost  = costs.reduce((s, c) => s + c.amount, 0);
+  const totalMonthlyCost = costs.reduce((s, c) => s + c.amount, 0);
   const totalDailyVarCost = dailyExpenses.filter(e => e.date === today).reduce((s, e) => s + e.amount, 0);
-  const dailyCost         = totalMonthlyCost / 30;
+  const dailyCost = totalMonthlyCost / 30;
 
-  const weeklyRevenue = DAILY_REV.reduce((s, d) => s + d.amount, 0);
-  const weeklyCost    = Math.round(dailyCost * 7);
-  const weeklyProfit  = weeklyRevenue - weeklyCost;
-  const weeklyMargin  = weeklyRevenue > 0 ? Math.round((weeklyProfit / weeklyRevenue) * 100) : 0;
+  // Real revenue calculations from database
+  const todayRevenue = dailyRevenue.filter(r => r.date === today).reduce((s, r) => s + r.amount, 0);
+  const todayVarCost = dailyExpenses.filter(e => e.date === today).reduce((s, e) => s + e.amount, 0);
+  const todayFixedCost = Math.round(totalMonthlyCost / 30);
+  const todayProfit = todayRevenue - todayVarCost - todayFixedCost;
 
-  const monthlyRevenue = MONTHLY_REV[0].amount;
-  const monthlyProfit  = monthlyRevenue - totalMonthlyCost;
-  const monthlyMargin  = Math.round((monthlyProfit / monthlyRevenue) * 100);
+  // Get last 7 days
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(Date.now() - i * 86400000);
+    const dateStr = d.toISOString().split("T")[0];
+    const rev = dailyRevenue.filter(r => r.date === dateStr).reduce((s, r) => s + r.amount, 0);
+    const exp = dailyExpenses.filter(e => e.date === dateStr).reduce((s, e) => s + e.amount, 0);
+    return { date: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }), dateStr, revenue: rev, expenses: exp };
+  }).reverse();
 
-  const days          = Math.max(1, Math.round((new Date(customEnd).getTime() - new Date(customStart).getTime()) / 86400000));
-  const customRevenue = Math.round(dailyCost * days * 1.8);
-  const customCost    = Math.round(dailyCost * days);
-  const customProfit  = customRevenue - customCost;
-  const customMargin  = Math.round((customProfit / customRevenue) * 100);
+  const weeklyRevenue = last7Days.reduce((s, d) => s + d.revenue, 0);
+  const weeklyVarCost = last7Days.reduce((s, d) => s + d.expenses, 0);
+  const weeklyCost = weeklyVarCost + Math.round(totalMonthlyCost / 30 * 7);
+  const weeklyProfit = weeklyRevenue - weeklyCost;
+  const weeklyMargin = weeklyRevenue > 0 ? Math.round((weeklyProfit / weeklyRevenue) * 100) : 0;
+
+  // Monthly — current month
+  const thisMonth = today.substring(0, 7);
+  const monthlyRevenue = dailyRevenue.filter(r => r.date.startsWith(thisMonth)).reduce((s, r) => s + r.amount, 0);
+  const monthlyVarCost = dailyExpenses.filter(e => e.date.startsWith(thisMonth)).reduce((s, e) => s + e.amount, 0);
+  const monthlyProfit = monthlyRevenue - monthlyVarCost - totalMonthlyCost;
+  const monthlyMargin = monthlyRevenue > 0 ? Math.round((monthlyProfit / monthlyRevenue) * 100) : 0;
+
+  // Custom range
+  const days = Math.max(1, Math.round((new Date(customEnd).getTime() - new Date(customStart).getTime()) / 86400000));
+  const customRevenue = dailyRevenue.filter(r => r.date >= customStart && r.date <= customEnd).reduce((s, r) => s + r.amount, 0);
+  const customVarCost = dailyExpenses.filter(e => e.date >= customStart && e.date <= customEnd).reduce((s, e) => s + e.amount, 0);
+  const customCost = customVarCost + Math.round(totalMonthlyCost / 30 * days);
+  const customProfit = customRevenue - customCost;
+  const customMargin = customRevenue > 0 ? Math.round((customProfit / customRevenue) * 100) : 0;
+
+  const maxWeekRev = Math.max(...last7Days.map(d => d.revenue), 1);
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
     flex: 1, padding: "9px 0", textAlign: "center" as const, fontSize: 13,
@@ -572,8 +659,8 @@ function InsightsScreen({ costs, dailyExpenses, setScreen }: { costs: CostItem[]
         )}
 
         <div style={{ background: "#EFEFEF", borderRadius: 12, padding: 4, display: "flex", gap: 2, marginBottom: 20 }}>
-          <button style={tabStyle(view === "week")}   onClick={() => setView("week")}>This Week</button>
-          <button style={tabStyle(view === "month")}  onClick={() => setView("month")}>This Month</button>
+          <button style={tabStyle(view === "week")} onClick={() => setView("week")}>This Week</button>
+          <button style={tabStyle(view === "month")} onClick={() => setView("month")}>This Month</button>
           <button style={tabStyle(view === "custom")} onClick={() => setView("custom")}>Custom</button>
         </div>
 
@@ -587,30 +674,37 @@ function InsightsScreen({ costs, dailyExpenses, setScreen }: { costs: CostItem[]
         {view === "week" && (
           <>
             <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-              <MetricCard label="Revenue"   value={fmt(weeklyRevenue)} sub="Last 7 days" />
-              <MetricCard label="Est. Cost" value={fmt(weeklyCost)}    sub="÷30 × 7 days" color={C.error} />
+              <MetricCard label="Revenue" value={fmt(weeklyRevenue)} sub="Last 7 days" />
+              <MetricCard label="Est. Cost" value={fmt(weeklyCost)} sub="÷30 × 7 days" color={C.error} />
             </div>
             <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
               <MetricCard label="Est. Profit" value={fmt(weeklyProfit)} sub={`${weeklyMargin}% margin`} color={weeklyProfit >= 0 ? C.success : C.error} />
-              <MetricCard label="Avg / Day"   value={fmt(Math.round(weeklyRevenue / 7))} sub="Per day" />
+              <MetricCard label="Avg / Day" value={fmt(Math.round(weeklyRevenue / 7))} sub="Per day" />
             </div>
             <div style={card}>
               <div style={secTitle}>Daily Revenue — Last 7 Days</div>
+              {/* Daily profit indicator */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                <div style={{ background: C.white, borderRadius: 14, padding: "14px 16px", flex: 1, boxShadow: "0 2px 10px rgba(0,0,0,0.06)", textAlign: "center" }}>
+                  <div style={{ fontSize: 11, color: C.light, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.5px", marginBottom: 6, fontFamily: FONT }}>Today's Profit</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: todayProfit >= 0 ? C.success : C.error, fontFamily: FONT }}>{fmt(todayProfit)}</div>
+                  <div style={{ fontSize: 11, color: C.light, marginTop: 4, fontFamily: FONT }}>{todayRevenue > 0 ? (todayProfit >= 0 ? "✓ Profitable" : "⚠ Loss today") : "No revenue yet"}</div>
+                </div>
+              </div>
+
               <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120, marginBottom: 8 }}>
-                {DAILY_REV.map((d, i) => {
-                  const barH  = Math.round((d.amount / MAX_DAY) * 100);
-                  const costH = Math.round((dailyCost / MAX_DAY) * 100);
+                {last7Days.map((d, i) => {
+                  const barH = Math.round((d.revenue / maxWeekRev) * 100);
+                  const isToday = d.dateStr === today;
                   return (
                     <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
-                      <div style={{ width: "100%", height: `${barH}%`, background: i === 0 ? C.accent : "#EEF4FF", borderRadius: "6px 6px 0 0", position: "relative", overflow: "hidden" }}>
-                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: `${Math.min(100, Math.round((costH / barH) * 100))}%`, background: "rgba(0,0,0,0.08)" }} />
-                      </div>
+                      <div style={{ width: "100%", height: `${Math.max(barH, 2)}%`, background: isToday ? C.accent : d.revenue > 0 ? "#EEF4FF" : "#F5F5F5", borderRadius: "6px 6px 0 0" }} />
                     </div>
                   );
                 })}
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                {DAILY_REV.map((d, i) => <div key={i} style={{ flex: 1, textAlign: "center", fontSize: 9, color: C.light, fontFamily: FONT }}>{d.date.split(" ")[0]}</div>)}
+                {last7Days.map((d, i) => <div key={i} style={{ flex: 1, textAlign: "center", fontSize: 9, color: d.dateStr === today ? C.accent : C.light, fontFamily: FONT, fontWeight: d.dateStr === today ? 700 : 400 }}>{d.date.split(" ")[0]}</div>)}
               </div>
             </div>
           </>
@@ -619,12 +713,12 @@ function InsightsScreen({ costs, dailyExpenses, setScreen }: { costs: CostItem[]
         {view === "month" && (
           <>
             <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-              <MetricCard label="Revenue"    value={fmt(monthlyRevenue)} sub="March 2026" />
+              <MetricCard label="Revenue" value={fmt(monthlyRevenue)} sub={monthlyRevenue > 0 ? "This month" : "No revenue yet"} />
               <MetricCard label="Total Cost" value={fmt(totalMonthlyCost)} sub="Fixed monthly" color={C.error} />
             </div>
             <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
               <MetricCard label="Net Profit" value={fmt(monthlyProfit)} sub={`${monthlyMargin}% margin`} color={monthlyProfit >= 0 ? C.success : C.error} />
-              <MetricCard label="Avg / Day"  value={fmt(Math.round(monthlyRevenue / 30))} sub="Per day" />
+              <MetricCard label="Avg / Day" value={fmt(Math.round(monthlyRevenue / 30))} sub="Per day" />
             </div>
             <div style={{ ...card, marginBottom: 12 }}>
               <div style={secTitle}>Monthly Revenue Trend</div>
@@ -671,7 +765,7 @@ function InsightsScreen({ costs, dailyExpenses, setScreen }: { costs: CostItem[]
           <>
             <div style={{ fontSize: 12, color: C.mid, fontFamily: FONT, marginBottom: 16 }}>{days} day{days !== 1 ? "s" : ""} selected · Daily cost est. {fmt(Math.round(dailyCost))}</div>
             <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-              <MetricCard label="Revenue"   value={fmt(customRevenue)} sub={`${days} days`} />
+              <MetricCard label="Revenue" value={fmt(customRevenue)} sub={`${days} days`} />
               <MetricCard label="Est. Cost" value={fmt(customCost)} sub={`÷30 × ${days}d`} color={C.error} />
             </div>
             <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
@@ -763,18 +857,19 @@ function CostProfilePage({ costs, setCosts, user, propertyId, isTest, setScreen 
 }
 
 /* ─── DAILY EXPENSES PAGE ────────────────────────────────── */
-function DailyExpensesPage({ dailyExpenses, setDailyExpenses, user, propertyId, isTest, setScreen }: {
+function DailyExpensesPage({ dailyExpenses, setDailyExpenses, user, propertyId, isTest, setScreen, returnScreen = "menu" }: {
   dailyExpenses: DailyExpense[]; setDailyExpenses: (e: DailyExpense[]) => void;
   user: User; propertyId: string; isTest: boolean; setScreen: (s: Screen) => void;
+  returnScreen?: Screen;
 }) {
-  const [name,   setName]   = useState("");
+  const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [date,   setDate]   = useState(today);
+  const [date, setDate] = useState(today);
   const [saving, setSaving] = useState(false);
-  const [toast,  setToast]  = useState("");
+  const [toast, setToast] = useState("");
 
   const todayExpenses = dailyExpenses.filter(e => e.date === date);
-  const totalToday    = todayExpenses.reduce((s, e) => s + e.amount, 0);
+  const totalToday = todayExpenses.reduce((s, e) => s + e.amount, 0);
 
   const addExpense = async () => {
     if (!name || !amount) { setToast("Enter item name and amount"); setTimeout(() => setToast(""), 3000); return; }
@@ -801,7 +896,7 @@ function DailyExpensesPage({ dailyExpenses, setDailyExpenses, user, propertyId, 
     <div style={{ paddingBottom: 80, minHeight: "100vh", background: C.bg, fontFamily: FONT }}>
       {toast && <Toast msg={toast} />}
       <div style={hdr}>
-        <button style={hdrIcon} onClick={() => setScreen("menu")}>←</button>
+        <button style={hdrIcon} onClick={() => setScreen(returnScreen as Screen)}>←</button>
         <span style={{ fontSize: 17, fontWeight: 700, color: C.dark }}>Daily Expenses</span>
         <span style={{ width: 36 }} />
       </div>
@@ -859,12 +954,12 @@ function MenuScreen({ setScreen, user, hotelName, onSignOut }: {
   setScreen: (s: Screen) => void; user: User; hotelName: string; onSignOut: () => void;
 }) {
   const items = [
-    { icon: "💰", label: "Monthly Costs",    action: () => setScreen("costProfile"),    danger: false },
-    { icon: "📋", label: "Daily Expenses",   action: () => setScreen("dailyExpenses"),  danger: false },
-    { icon: "⚙️", label: "Settings",         action: null,                              danger: false },
-    { icon: "ℹ️", label: "About",            action: null,                              danger: false },
-    { icon: "❓", label: "Help",             action: null,                              danger: false },
-    { icon: "🚪", label: "Sign Out",         action: onSignOut,                         danger: true  },
+    { icon: "💰", label: "Monthly Costs", action: () => setScreen("costProfile"), danger: false },
+    { icon: "📋", label: "Daily Expenses", action: () => setScreen("dailyExpenses"), danger: false },
+    { icon: "⚙️", label: "Settings", action: null, danger: false },
+    { icon: "ℹ️", label: "About", action: null, danger: false },
+    { icon: "❓", label: "Help", action: null, danger: false },
+    { icon: "🚪", label: "Sign Out", action: onSignOut, danger: true },
   ];
   return (
     <div style={{ paddingBottom: 80, minHeight: "100vh", background: C.bg, fontFamily: FONT }}>
@@ -906,7 +1001,8 @@ function CheckInForm({ setScreen, prefill, guests, user, propertyId, isTest, onC
   onComplete: (data: ConfirmData, guestId?: string) => void;
 }) {
   const isOTA = prefill !== null;
-  const [form, setForm] = useState({ name: prefill?.name ?? "", phone: prefill?.phone ?? "", idType: "Aadhaar", idNum: "", address: "", checkin: prefill?.checkin ?? today, checkout: prefill?.checkout ?? in2days, room: prefill?.room ?? "101", numGuests: prefill?.guests ?? 1, purpose: "Tourism" });
+  const [form, setForm] = useState({ name: prefill?.name ?? "", phone: prefill?.phone ?? "", idType: "Aadhaar", idNum: "", address: "", checkin: prefill?.checkin ?? today, checkout: prefill?.checkout ?? in2days, room: prefill?.room ?? "101", numGuests: prefill?.guests ?? 1, purpose: "Tourism", nationality: "India" });
+  const [visaUploaded, setVisaUploaded] = useState(false);
   const [idVerified, setIdVerified] = useState(false);
   const [shake, setShake] = useState(false);
   const [toast, setToast] = useState("");
@@ -917,10 +1013,14 @@ function CheckInForm({ setScreen, prefill, guests, user, propertyId, isTest, onC
   const submit = async () => {
     if (!form.name) return;
     if (!idVerified) { setShake(true); setTimeout(() => setShake(false), 500); showToast("Please verify guest ID before check-in"); return; }
+    if (form.nationality !== "India" && form.nationality !== "Nepal" && !visaUploaded) {
+      showToast("Visa copy required for foreign nationals");
+      return;
+    }
     setSaving(true);
 
     if (prefill?.guestId) {
-      await supabase.from("guests").update({ status: "Staying", form_complete: true, id_type: form.idType, phone: form.phone, address: form.address, purpose: form.purpose }).eq("id", prefill.guestId);
+      await supabase.from("guests").update({ status: "Staying", form_complete: true, id_type: form.idType, phone: form.phone, address: form.address, purpose: form.purpose, nationality: form.nationality }).eq("id", prefill.guestId);
       onComplete({ name: form.name, room: form.room, checkin: form.checkin, checkout: form.checkout, guests: form.numGuests, idType: form.idType }, prefill.guestId);
     } else {
       const nights = Math.max(1, Math.round((new Date(form.checkout).getTime() - new Date(form.checkin).getTime()) / 86400000));
@@ -930,7 +1030,7 @@ function CheckInForm({ setScreen, prefill, guests, user, propertyId, isTest, onC
         status: "Staying", source: "Owner Check-in",
         id_type: form.idType, id_number: form.idNum, address: form.address,
         checkin: form.checkin, checkout: form.checkout,
-        nights, guest_count: form.numGuests, purpose: form.purpose,
+        nights, guest_count: form.numGuests, purpose: form.purpose, nationality: form.nationality,
         form_complete: true, is_test: isTest,
       }).select().single();
       if (data) onComplete({ name: form.name, room: form.room, checkin: form.checkin, checkout: form.checkout, guests: form.numGuests, idType: form.idType }, data.id);
@@ -952,9 +1052,33 @@ function CheckInForm({ setScreen, prefill, guests, user, propertyId, isTest, onC
         {isOTA && <div style={{ background: "#EEF4FF", border: `1px solid #C5D9FF`, borderRadius: 12, padding: "12px 14px", marginBottom: 18, display: "flex", gap: 10, alignItems: "center" }}><span style={{ fontSize: 16 }}>ℹ️</span><span style={{ fontSize: 13, color: C.blue, fontWeight: 600, fontFamily: FONT }}>Details pre-filled from {prefill?.source} — verify and complete</span></div>}
         <div style={fgrp}><label style={lbl}>Full Name</label><input style={inp} value={form.name} onChange={e => set("name", e.target.value)} placeholder="Guest full name" /></div>
         <div style={fgrp}><label style={lbl}>Phone Number</label><div style={{ display: "flex", gap: 8 }}><div style={{ ...inp, width: 60, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#F7F7F7", color: C.mid, borderRadius: 10 }}>+91</div><input style={{ ...inp, flex: 1 }} value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="9XXXXXXXXX" /></div></div>
+        <div style={fgrp}>
+          <label style={lbl}>Nationality</label>
+          <select style={inp} value={form.nationality} onChange={e => { set("nationality", e.target.value); setVisaUploaded(false); }}>
+            {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div style={fgrp}>
+          <div style={{ fontSize: 12, color: C.mid, fontFamily: FONT, marginBottom: 6 }}>🌐 FRRO Form C (required for foreign guests)</div>
+          <a href="https://indianfrro.gov.in/frro/menufrrodoc.jsp" target="_blank" rel="noopener noreferrer"
+            style={{ display: "block", padding: "12px 14px", borderRadius: 10, border: `1.5px solid #C5D9FF`, background: "#EEF4FF", color: C.blue, fontSize: 13, fontWeight: 600, fontFamily: FONT, textDecoration: "none" }}>
+            📋 Open FRRO Form C Portal →
+          </a>
+          <div style={{ fontSize: 11, color: C.light, marginTop: 4, fontFamily: FONT }}>Not mandatory — fill online and submit separately</div>
+        </div>
         <div style={fgrp}><label style={lbl}>ID Type</label><select style={inp} value={form.idType} onChange={e => set("idType", e.target.value)}><option>Aadhaar</option><option>Passport</option><option>Driving Licence</option></select></div>
         <div style={fgrp}><label style={lbl}>ID Number</label><input style={inp} value={form.idNum} onChange={e => set("idNum", e.target.value)} placeholder="Enter ID number" /></div>
         <div style={fgrp}><label style={lbl}>ID Photo</label><div style={{ border: `2px dashed ${C.border}`, borderRadius: 14, padding: "28px 16px", textAlign: "center", cursor: "pointer", background: "#FAFAFA" }}><div style={{ fontSize: 28, marginBottom: 8 }}>📷</div><div style={{ fontWeight: 700, color: C.dark, fontSize: 13, fontFamily: FONT }}>Upload ID Photo</div><div style={{ fontSize: 12, color: C.light, marginTop: 4, fontFamily: FONT }}>Required for check-in</div></div></div>
+        {form.nationality !== "India" && form.nationality !== "Nepal" && (
+          <div style={fgrp}>
+            <label style={lbl}>Visa Copy <span style={{ color: C.error }}>*</span></label>
+            <div onClick={() => setVisaUploaded(v => !v)} style={{ border: `2px dashed ${visaUploaded ? C.success : C.accent}`, borderRadius: 14, padding: "28px 16px", textAlign: "center", cursor: "pointer", background: visaUploaded ? "#E6F4EA" : "#FFF5F7" }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>{visaUploaded ? "✅" : "🛂"}</div>
+              <div style={{ fontWeight: 700, color: C.dark, fontSize: 13, fontFamily: FONT }}>{visaUploaded ? "Visa Copy Uploaded" : "Upload Visa Copy"}</div>
+              <div style={{ fontSize: 12, color: visaUploaded ? C.success : C.error, marginTop: 4, fontFamily: FONT }}>{visaUploaded ? "Tap to remove" : "Required for non-Indian/Nepali guests"}</div>
+            </div>
+          </div>
+        )}
         <div style={fgrp}><label style={lbl}>Address</label><textarea style={{ ...inp, height: 76, resize: "none" } as React.CSSProperties} value={form.address} onChange={e => set("address", e.target.value)} placeholder="Home address" /></div>
         <div style={{ display: "flex", gap: 10, ...fgrp }}>
           <div style={{ flex: 1 }}><label style={lbl}>Check-in</label><input type="date" style={ro(inp)} value={form.checkin} readOnly={isOTA} onChange={e => !isOTA && set("checkin", e.target.value)} /></div>
@@ -1006,30 +1130,30 @@ function Confirmation({ data, setScreen }: { data: ConfirmData; setScreen: (s: S
 
 /* ─── CHECKOUT ───────────────────────────────────────────── */
 const DEFAULT_EXTRA: ExtraCharge[] = [
-  { id: 1, name: "Water Bottle",      category: "Food & Beverage",    amount: 50  },
-  { id: 2, name: "Extra Pillow",      category: "Other",              amount: 100 },
+  { id: 1, name: "Water Bottle", category: "Food & Beverage", amount: 50 },
+  { id: 2, name: "Extra Pillow", category: "Other", amount: 100 },
   { id: 3, name: "Late Checkout Fee", category: "Laundry & Services", amount: 500 },
 ];
 
 function Checkout({ guest, setScreen, onCheckout }: { guest: Guest; setScreen: (s: Screen) => void; onCheckout: (p: CheckoutPayload) => void }) {
-  const [roomRate, setRoomRate]   = useState(3200);
-  const [editing, setEditing]     = useState(false);
-  const [extras, setExtras]       = useState<ExtraCharge[]>(DEFAULT_EXTRA);
+  const [roomRate, setRoomRate] = useState(3200);
+  const [editing, setEditing] = useState(false);
+  const [extras, setExtras] = useState<ExtraCharge[]>(DEFAULT_EXTRA);
   const [payStatus, setPayStatus] = useState("Fully Paid");
   const [payMethod, setPayMethod] = useState("Cash");
   const nextId = useRef(10);
-  const nights   = 1;
-  const gstRate  = roomGSTRate(roomRate);
-  const halfGST  = gstRate / 2;
+  const nights = 1;
+  const gstRate = roomGSTRate(roomRate);
+  const halfGST = gstRate / 2;
   const roomBase = roomRate * nights;
   const roomCGST = +(roomBase * halfGST / 100).toFixed(2);
   const roomSGST = roomCGST;
-  const addExtra    = () => setExtras(e => [...e, { id: nextId.current++, name: "", category: "Food & Beverage", amount: 0 }]);
+  const addExtra = () => setExtras(e => [...e, { id: nextId.current++, name: "", category: "Food & Beverage", amount: 0 }]);
   const updateExtra = (id: number, field: keyof ExtraCharge, val: string | number) => setExtras(e => e.map(x => x.id === id ? { ...x, [field]: val } : x));
   const removeExtra = (id: number) => setExtras(e => e.filter(x => x.id !== id));
   const extraTotals = extras.map(e => { const gst = +(e.amount * itemGSTRate(e.category) / 100).toFixed(2); return { ...e, gst, lineTotal: e.amount + gst }; });
-  const grandTotal  = +(roomBase + roomCGST + roomSGST + extraTotals.reduce((s, e) => s + e.amount + e.gst, 0)).toFixed(2);
-  const proceed     = () => onCheckout({ total: grandTotal, roomBase, roomGSTRate: gstRate, roomCGST, roomSGST, nights, extraCharges: extras });
+  const grandTotal = +(roomBase + roomCGST + roomSGST + extraTotals.reduce((s, e) => s + e.amount + e.gst, 0)).toFixed(2);
+  const proceed = () => onCheckout({ total: grandTotal, roomBase, roomGSTRate: gstRate, roomCGST, roomSGST, nights, extraCharges: extras });
   const tog = (active: boolean): React.CSSProperties => ({ padding: "9px 16px", borderRadius: 24, border: `1.5px solid ${active ? C.dark : C.border}`, background: active ? C.dark : "transparent", color: active ? "#fff" : C.mid, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT });
 
   return (
@@ -1037,6 +1161,19 @@ function Checkout({ guest, setScreen, onCheckout }: { guest: Guest; setScreen: (
       <div style={hdr}><button style={hdrIcon} onClick={() => setScreen("dashboard")}>←</button><div style={{ textAlign: "center" }}><div style={{ fontSize: 17, fontWeight: 700, color: C.dark }}>Check-out</div><div style={{ fontSize: 12, color: C.mid }}>{guest.name}</div></div><span style={{ width: 36 }} /></div>
       <div style={{ padding: "12px 12px 0" }}>
         <div style={card}><div style={{ display: "flex", gap: 12, alignItems: "center" }}><Avatar name={guest.name} size={40} /><div><div style={{ fontWeight: 700, fontSize: 15, color: C.dark, fontFamily: FONT }}>{guest.name}</div><div style={{ display: "flex", gap: 6, marginTop: 4 }}><span style={{ ...pill("#EEF4FF", C.blue), fontSize: 11 }}>Room {guest.room}</span><OTATag source={guest.source} /></div></div></div></div>
+        {guest.nationality && guest.nationality !== "India" && guest.nationality !== "Nepal" && (
+          <div style={{ background: "#FFF8E1", border: `1px solid #FFD54F`, borderRadius: 12, padding: "12px 14px", marginBottom: 12, display: "flex", gap: 10, alignItems: "center" }}>
+            <span style={{ fontSize: 18 }}>🛂</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#7B5800", fontFamily: FONT }}>FRRO Form C Required</div>
+              <div style={{ fontSize: 12, color: "#9E6B00", marginTop: 2, fontFamily: FONT }}>This guest's nationality requires Form C submission</div>
+            </div>
+            <a href="https://indianfrro.gov.in/frro/menufrrodoc.jsp" target="_blank" rel="noopener noreferrer"
+              style={{ padding: "8px 12px", borderRadius: 8, background: "#FFD54F", color: "#7B5800", fontSize: 12, fontWeight: 700, fontFamily: FONT, textDecoration: "none", whiteSpace: "nowrap" as const }}>
+              Open Portal →
+            </a>
+          </div>
+        )}
         <div style={card}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}><div style={{ fontSize: 15, fontWeight: 700, color: C.dark, fontFamily: FONT }}>Charges</div><button onClick={() => setEditing(e => !e)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: C.mid, fontWeight: 600, fontFamily: FONT }}>{editing ? "Done" : "✏️ Edit Rate"}</button></div>
           <div style={{ marginBottom: 14 }}>
@@ -1064,12 +1201,12 @@ function Checkout({ guest, setScreen, onCheckout }: { guest: Guest; setScreen: (
 }
 
 /* ─── INVOICE MODAL ──────────────────────────────────────── */
-function InvoiceModal({ guest, payload, onClose }: { guest: Guest; payload: CheckoutPayload; onClose: () => void }) {
+function InvoiceModal({ guest, payload, onClose, propertyInfo }: { guest: Guest; payload: CheckoutPayload; onClose: () => void; propertyInfo: PropertyInfo | null }) {
   const extraTotals = payload.extraCharges.map(e => { const gstPct = itemGSTRate(e.category); const gst = +(e.amount * gstPct / 100).toFixed(2); return { ...e, gstPct, gst, lineTotal: e.amount + gst }; });
-  const subtotal   = payload.roomBase + extraTotals.reduce((s, e) => s + e.amount, 0);
-  const totalGST   = payload.roomCGST + payload.roomSGST + extraTotals.reduce((s, e) => s + e.gst, 0);
+  const subtotal = payload.roomBase + extraTotals.reduce((s, e) => s + e.amount, 0);
+  const totalGST = payload.roomCGST + payload.roomSGST + extraTotals.reduce((s, e) => s + e.gst, 0);
   const grandTotal = +(subtotal + totalGST).toFixed(2);
-  const catLabel   = (cat: ExtraCharge["category"]) => cat === "Food & Beverage" ? "F&B" : cat === "Laundry & Services" ? "Svc" : "Other";
+  const catLabel = (cat: ExtraCharge["category"]) => cat === "Food & Beverage" ? "F&B" : cat === "Laundry & Services" ? "Svc" : "Other";
   const rows = [{ item: `Room (${payload.nights}n)`, cat: "Accomm.", amt: payload.roomBase, gstPct: payload.roomGSTRate, gst: payload.roomCGST + payload.roomSGST, total: payload.roomBase + payload.roomCGST + payload.roomSGST }, ...extraTotals.map(e => ({ item: e.name, cat: catLabel(e.category), amt: e.amount, gstPct: e.gstPct, gst: e.gst, total: e.lineTotal }))];
   return (
     <div style={{ position: "fixed", inset: 0, background: C.white, zIndex: 500, overflowY: "auto", maxWidth: "100%", margin: "0 auto", fontFamily: FONT }}>
@@ -1077,8 +1214,12 @@ function InvoiceModal({ guest, payload, onClose }: { guest: Guest; payload: Chec
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}><button onClick={onClose} style={{ background: "none", border: "none", fontSize: 26, cursor: "pointer", color: C.mid }}>×</button></div>
         <div style={{ textAlign: "center", marginBottom: 16 }}><div style={{ fontSize: 18, fontWeight: 700, color: C.dark, letterSpacing: 1, fontFamily: FONT }}>TAX INVOICE</div><div style={{ height: 2, background: "#F0F0F0", marginTop: 10, borderRadius: 1 }} /></div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, gap: 12 }}>
-          <div style={{ fontSize: 12, lineHeight: 1.8, fontFamily: FONT }}><div style={{ fontWeight: 700, fontSize: 13 }}>Heritage Grand</div><div style={{ color: C.mid }}>42, Civil Lines, Jaipur 302006</div><div style={{ color: C.mid }}>GSTIN: 08AABCH1234F1Z5</div><div style={{ color: C.mid }}>+91 98100-00000</div></div>
-          <div style={{ fontSize: 12, lineHeight: 1.8, textAlign: "right", fontFamily: FONT }}><div><strong>INV-2026-0047</strong></div><div style={{ color: C.mid }}>27 Mar 2026</div><div style={{ color: C.mid }}>In: 27 Mar | Out: 28 Mar</div></div>
+          <div style={{ fontSize: 12, lineHeight: 1.8, fontFamily: FONT }}>
+            <div style={{ fontWeight: 700, fontSize: 13 }}>{propertyInfo?.name ?? "My Hotel"}</div>
+            {propertyInfo?.address && <div style={{ color: C.mid }}>{propertyInfo.address}</div>}
+            {propertyInfo?.gstin && <div style={{ color: C.mid }}>GSTIN: {propertyInfo.gstin}</div>}
+          </div>
+          <div style={{ fontSize: 12, lineHeight: 1.8, textAlign: "right", fontFamily: FONT }}><div><strong>{propertyInfo?.invoicePrefix ?? "INV"}-{new Date().getFullYear()}-{String(propertyInfo?.invoiceCounter ?? 1).padStart(4, "0")}</strong></div><div style={{ color: C.mid }}>27 Mar 2026</div><div style={{ color: C.mid }}>In: 27 Mar | Out: 28 Mar</div></div>
         </div>
         <div style={{ ...card, padding: 14, marginBottom: 14 }}><div style={secTitle}>Guest</div><div style={{ fontSize: 13, fontFamily: FONT }}><strong>{guest.name}</strong> · Aadhaar XXXX-4821 · Room {guest.room} · {payload.nights}N</div></div>
         <div style={{ marginBottom: 14, overflowX: "auto" }}>
@@ -1094,9 +1235,9 @@ function InvoiceModal({ guest, payload, onClose }: { guest: Guest; payload: Chec
           <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontSize: 13, color: C.mid, fontFamily: FONT }}>Balance Due</span><span style={{ fontSize: 13, fontWeight: 700, color: C.success, fontFamily: FONT }}>₹0</span></div>
         </div>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <div style={{ width: 80, height: 80, background: C.dark, margin: "0 auto 8px", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 60, height: 60, background: C.white, display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 2, padding: 4, borderRadius: 2 }}>{Array.from({ length: 25 }).map((_, i) => <div key={i} style={{ background: [0,1,5,6,9,11,13,15,18,20,23,24].includes(i) ? C.dark : C.white, borderRadius: 1 }} />)}</div></div>
+          <div style={{ width: 80, height: 80, background: C.dark, margin: "0 auto 8px", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 60, height: 60, background: C.white, display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 2, padding: 4, borderRadius: 2 }}>{Array.from({ length: 25 }).map((_, i) => <div key={i} style={{ background: [0, 1, 5, 6, 9, 11, 13, 15, 18, 20, 23, 24].includes(i) ? C.dark : C.white, borderRadius: 1 }} />)}</div></div>
           <div style={{ fontSize: 11, color: C.light, fontFamily: FONT }}>Scan to verify · Computer generated invoice</div>
-          <div style={{ fontSize: 13, color: C.mid, marginTop: 6, fontWeight: 500, fontFamily: FONT }}>Thank you for staying at Heritage Grand</div>
+          <div style={{ fontSize: 13, color: C.mid, marginTop: 6, fontWeight: 500, fontFamily: FONT }}>Thank you for staying at {propertyInfo?.name ?? "our hotel"}</div>
         </div>
         <button style={btn(C.dark)} onClick={onClose}>✕ Close Invoice</button>
       </div>
@@ -1105,11 +1246,11 @@ function InvoiceModal({ guest, payload, onClose }: { guest: Guest; payload: Chec
 }
 
 /* ─── CHECKOUT SUMMARY ───────────────────────────────────── */
-function CheckoutSummary({ guest, payload, setScreen }: { guest: Guest; payload: CheckoutPayload; setScreen: (s: Screen) => void }) {
+function CheckoutSummary({ guest, payload, setScreen, propertyInfo }: { guest: Guest; payload: CheckoutPayload; setScreen: (s: Screen) => void; propertyInfo: PropertyInfo | null }) {
   const [showInvoice, setShowInvoice] = useState(false);
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: FONT }}>
-      {showInvoice && <InvoiceModal guest={guest} payload={payload} onClose={() => setShowInvoice(false)} />}
+      {showInvoice && <InvoiceModal guest={guest} payload={payload} propertyInfo={propertyInfo} onClose={() => setShowInvoice(false)} />}
       <div style={hdr}><button style={hdrIcon} onClick={() => setScreen("dashboard")}>←</button><span style={{ fontSize: 17, fontWeight: 700, color: C.dark }}>Check-out Complete</span><span style={{ width: 36 }} /></div>
       <div style={{ padding: "40px 20px 24px", textAlign: "center" }}>
         <div style={{ width: 80, height: 80, borderRadius: "50%", background: "#E6F4EA", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 36 }}>✓</div>
@@ -1148,20 +1289,23 @@ function LoadingScreen() {
 
 /* ─── APP ROOT ───────────────────────────────────────────── */
 export default function App() {
-  const [user,            setUser]            = useState<User | null>(null);
-  const [loading,         setLoading]         = useState(true);
-  const [screen,          setScreen]          = useState<Screen>("dashboard");
-  const [guests,          setGuests]          = useState<Guest[]>([]);
-  const [activeGuest,     setActiveGuest]     = useState<Guest | null>(null);
-  const [prefill,         setPrefill]         = useState<CheckInPrefill>(null);
-  const [confirmData,     setConfirmData]     = useState<ConfirmData | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [screen, setScreen] = useState<Screen>("dashboard");
+  const [prevScreen, setPrevScreen] = useState<Screen>("dashboard");
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [activeGuest, setActiveGuest] = useState<Guest | null>(null);
+  const [prefill, setPrefill] = useState<CheckInPrefill>(null);
+  const [confirmData, setConfirmData] = useState<ConfirmData | null>(null);
   const [checkoutPayload, setCheckoutPayload] = useState<CheckoutPayload | null>(null);
-  const [costs,           setCosts]           = useState<CostItem[]>([]);
-  const [dailyExpenses,   setDailyExpenses]   = useState<DailyExpense[]>([]);
-  const [hotelName,       setHotelName]       = useState("My Hotel");
-  const [propertyId,      setPropertyId]      = useState("");
-  const [,     setIsFirstTime]     = useState(false);
-  const [isTest,          setIsTest]          = useState(false);
+  const [costs, setCosts] = useState<CostItem[]>([]);
+  const [dailyExpenses, setDailyExpenses] = useState<DailyExpense[]>([]);
+  const [dailyRevenue, setDailyRevenue] = useState<DailyRevenue[]>([]);
+  const [hotelName, setHotelName] = useState("My Hotel");
+  const [propertyId, setPropertyId] = useState("");
+  const [propertyInfo, setPropertyInfo] = useState<PropertyInfo | null>(null);
+  const [, setIsFirstTime] = useState(false);
+  const [isTest, setIsTest] = useState(false);
 
   /* ── Auth listener ── */
   useEffect(() => {
@@ -1179,17 +1323,16 @@ export default function App() {
   /* ── Load data when user logs in ── */
   useEffect(() => {
     if (!user) return;
-    const test = user.email === TEST_EMAIL;
-    setIsTest(test);
-    loadUserData(user, test);
+    loadUserData(user);
   }, [user]);
 
-  const loadUserData = async (u: User, test: boolean) => {
-    // Load property
-    const { data: props } = await supabase.from("properties").select("*").eq("user_id", u.id).eq("is_test", test);
+  const loadUserData = async (u: User) => {
+    const { data: props } = await supabase.from("properties").select("*").eq("user_id", u.id);
     if (!props || props.length === 0) { setIsFirstTime(true); setScreen("onboarding"); return; }
 
     const prop = props[0];
+    const test = prop.is_test ?? false;
+    setIsTest(test);
     setPropertyId(prop.id);
     setHotelName(prop.name);
 
@@ -1201,7 +1344,7 @@ export default function App() {
         status: g.status as Status, source: g.source,
         phone: g.phone, checkin: g.checkin, checkout: g.checkout,
         nights: g.nights, totalCharged: g.total_charged,
-        guestCount: g.guest_count, formComplete: g.form_complete,
+        guestCount: g.guest_count, formComplete: g.form_complete, nationality: g.nationality ?? "India",
       })));
     }
 
@@ -1212,6 +1355,21 @@ export default function App() {
     // Load daily expenses
     const { data: expData } = await supabase.from("daily_expenses").select("*").eq("user_id", u.id).eq("is_test", test).order("date", { ascending: false });
     if (expData) setDailyExpenses(expData.map(e => ({ id: e.id, name: e.name, amount: e.amount, date: e.date })));
+
+    // Load daily revenue
+    const { data: revData } = await supabase.from("daily_revenue").select("*").eq("user_id", u.id).eq("is_test", test).order("date", { ascending: false });
+    if (revData) setDailyRevenue(revData.map(r => ({ id: r.id, amount: r.amount, date: r.date, source: r.source, note: r.note ?? "", guestName: r.checkout_guest_name ?? "" })));
+
+    // Load property info
+    setPropertyInfo({
+      id: prop.id,
+      name: prop.name,
+      gstin: prop.gstin ?? "",
+      legalName: prop.legal_name ?? prop.name,
+      address: prop.address ?? "",
+      invoicePrefix: prop.invoice_prefix ?? "INV",
+      invoiceCounter: prop.invoice_counter ?? 1,
+    });
 
     setScreen("dashboard");
   };
@@ -1225,21 +1383,26 @@ export default function App() {
   const handleOnboardingComplete = async (newCosts: CostItem[]) => {
     setCosts(newCosts);
     setIsFirstTime(false);
-    if (user) await loadUserData(user, isTest);
+    if (user) await loadUserData(user);
     setScreen("dashboard");
   };
 
   const handleCheckinComplete = async (data: ConfirmData, guestId?: string) => {
     if (guestId) {
-      setGuests(prev => prev.map(g => g.id === guestId ? { ...g, status: "Staying" as Status } : g));
-    } else {
-      const nights = Math.max(1, Math.round((new Date(data.checkout).getTime() - new Date(data.checkin).getTime()) / 86400000));
-      const newGuest: Guest = {
-        id: Date.now().toString(), name: data.name, room: data.room,
-        status: "Staying", source: "Owner Check-in", formComplete: true,
-        checkin: data.checkin, checkout: data.checkout, nights, guestCount: data.guests,
-      };
-      setGuests(prev => [newGuest, ...prev]);
+      setGuests(prev => {
+        const exists = prev.find(g => g.id === guestId);
+        if (exists) {
+          return prev.map(g => g.id === guestId ? { ...g, status: "Staying" as Status } : g);
+        } else {
+          const nights = Math.max(1, Math.round((new Date(data.checkout).getTime() - new Date(data.checkin).getTime()) / 86400000));
+          return [{
+            id: guestId, name: data.name, room: data.room,
+            status: "Staying" as Status, source: "Owner Check-in",
+            formComplete: true, checkin: data.checkin,
+            checkout: data.checkout, nights, guestCount: data.guests,
+          }, ...prev];
+        }
+      });
     }
     setConfirmData(data);
     setScreen("confirmation");
@@ -1249,13 +1412,29 @@ export default function App() {
     if (activeGuest) {
       await supabase.from("guests").update({ status: "Checked Out", total_charged: payload.total, nights: payload.nights }).eq("id", activeGuest.id);
       setGuests(prev => prev.map(g => g.id === activeGuest.id ? { ...g, status: "Checked Out" as Status, totalCharged: payload.total, nights: payload.nights } : g));
+
+      // Auto-add checkout total to daily revenue
+      const revEntry = {
+        property_id: propertyId,
+        user_id: user!.id,
+        date: today,
+        amount: payload.total,
+        source: "checkout",
+        note: `Checkout: ${activeGuest.name}`,
+        checkout_guest_name: activeGuest.name,
+        is_test: isTest,
+      };
+      const { data: revData } = await supabase.from("daily_revenue").insert(revEntry).select().single();
+      if (revData) {
+        setDailyRevenue(prev => [{ id: revData.id, amount: revData.amount, date: revData.date, source: revData.source, note: revData.note ?? "", guestName: revData.checkout_guest_name ?? "" }, ...prev]);
+      }
     }
     setCheckoutPayload(payload);
     setScreen("checkoutSummary");
   };
 
   if (loading) return <LoadingScreen />;
-  if (!user)   return <LoginScreen />;
+  if (!user) return <LoginScreen />;
 
   if (screen === "onboarding" && user) {
     return <OnboardingScreen user={user} isTest={isTest} onComplete={handleOnboardingComplete} />;
@@ -1263,16 +1442,16 @@ export default function App() {
 
   return (
     <div style={{ fontFamily: FONT, width: "100%", margin: 0, minHeight: "100vh", background: C.bg, position: "relative" }}>
-      {screen === "dashboard"       && <Dashboard guests={guests} setScreen={setScreen} setActiveGuest={setActiveGuest} setPrefill={setPrefill} hotelName={hotelName} isTest={isTest} />}
-      {screen === "guests"          && <GuestsScreen guests={guests} setScreen={setScreen} setActiveGuest={setActiveGuest} />}
-      {screen === "insights"        && <InsightsScreen costs={costs} dailyExpenses={dailyExpenses} setScreen={setScreen} />}
-      {screen === "menu"            && <MenuScreen setScreen={setScreen} user={user} hotelName={hotelName} onSignOut={handleSignOut} />}
-      {screen === "costProfile"     && propertyId && <CostProfilePage costs={costs} setCosts={setCosts} user={user} propertyId={propertyId} isTest={isTest} setScreen={setScreen} />}
-      {screen === "dailyExpenses"   && propertyId && <DailyExpensesPage dailyExpenses={dailyExpenses} setDailyExpenses={setDailyExpenses} user={user} propertyId={propertyId} isTest={isTest} setScreen={setScreen} />}
-      {screen === "checkin"         && user && propertyId && <CheckInForm setScreen={setScreen} prefill={prefill} guests={guests} user={user} propertyId={propertyId} isTest={isTest} onComplete={handleCheckinComplete} />}
-      {screen === "confirmation"    && confirmData && <Confirmation data={confirmData} setScreen={setScreen} />}
-      {screen === "checkout"        && activeGuest && <Checkout guest={activeGuest} setScreen={setScreen} onCheckout={handleCheckout} />}
-      {screen === "checkoutSummary" && activeGuest && checkoutPayload && <CheckoutSummary guest={activeGuest} payload={checkoutPayload} setScreen={setScreen} />}
+      {screen === "dashboard" && <Dashboard guests={guests} setScreen={setScreen} setActiveGuest={setActiveGuest} setPrefill={setPrefill} hotelName={hotelName} isTest={isTest} dailyRevenue={dailyRevenue} setDailyRevenue={setDailyRevenue} dailyExpenses={dailyExpenses} propertyId={propertyId} user={user!} setPrevScreen={setPrevScreen} />}
+      {screen === "guests" && <GuestsScreen guests={guests} setScreen={setScreen} setActiveGuest={setActiveGuest} />}
+      {screen === "insights" && <InsightsScreen costs={costs} dailyExpenses={dailyExpenses} dailyRevenue={dailyRevenue} setScreen={setScreen} />}
+      {screen === "menu" && <MenuScreen setScreen={setScreen} user={user} hotelName={hotelName} onSignOut={handleSignOut} />}
+      {screen === "costProfile" && propertyId && <CostProfilePage costs={costs} setCosts={setCosts} user={user} propertyId={propertyId} isTest={isTest} setScreen={setScreen} />}
+      {screen === "dailyExpenses" && propertyId && <DailyExpensesPage dailyExpenses={dailyExpenses} setDailyExpenses={setDailyExpenses} user={user} propertyId={propertyId} isTest={isTest} setScreen={setScreen} returnScreen={prevScreen} />}
+      {screen === "checkin" && user && propertyId && <CheckInForm setScreen={setScreen} prefill={prefill} guests={guests} user={user} propertyId={propertyId} isTest={isTest} onComplete={handleCheckinComplete} />}
+      {screen === "confirmation" && confirmData && <Confirmation data={confirmData} setScreen={setScreen} />}
+      {screen === "checkout" && activeGuest && <Checkout guest={activeGuest} setScreen={setScreen} onCheckout={handleCheckout} />}
+      {screen === "checkoutSummary" && activeGuest && checkoutPayload && <CheckoutSummary guest={activeGuest} payload={checkoutPayload} setScreen={setScreen} propertyInfo={propertyInfo} />}
     </div>
   );
 }
