@@ -1583,8 +1583,8 @@ export default function App() {
       {screen === "guests" && <GuestsScreen guests={guests} setScreen={navigateTo} setActiveGuest={setActiveGuest} propertyInfo={propertyInfo} />}
       {screen === "insights" && <InsightsScreen costs={costs} dailyExpenses={dailyExpenses} dailyRevenue={dailyRevenue} guests={guests} setScreen={navigateTo} />}
       {screen === "menu" && <MenuScreen setScreen={navigateTo} user={user} hotelName={hotelName} onSignOut={handleSignOut} />}
-      {screen === "costProfile" && propertyId && <CostProfilePage costs={costs} setCosts={setCosts} user={user} propertyId={propertyId} isTest={isTest} setScreen={navigateTo} />}
-      {screen === "dailyExpenses" && propertyId && <DailyExpensesPage dailyExpenses={dailyExpenses} setDailyExpenses={setDailyExpenses} user={user} propertyId={propertyId} isTest={isTest} setScreen={navigateTo} returnScreen={prevScreen} />}
+      {screen === "costProfile" && propertyId && <CostProfilePage costs={costs} setCosts={setCosts} user={user!} propertyId={propertyId} isTest={isTest} setScreen={navigateTo} />}
+      {screen === "dailyExpenses" && propertyId && <DailyExpensesPage dailyExpenses={dailyExpenses} setDailyExpenses={setDailyExpenses} user={user!} propertyId={propertyId} isTest={isTest} setScreen={navigateTo} returnScreen={prevScreen} />}
       {screen === "checkin" && user && propertyId && <CheckInForm setScreen={navigateTo} prefill={prefill} guests={guests} user={user} propertyId={propertyId} isTest={isTest} onComplete={handleCheckinComplete} />}
       {screen === "confirmation" && confirmData && <Confirmation data={confirmData} setScreen={navigateTo} />}
       {screen === "checkout" && activeGuest && <Checkout guest={activeGuest} setScreen={navigateTo} onCheckout={handleCheckout} />}
