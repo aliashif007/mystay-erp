@@ -314,8 +314,232 @@ function GuestCard({ guest, onCheckin, onCheckout }: { guest: Guest; onCheckin?:
   );
 }
 
+/* ─── OTA SIMULATOR ──────────────────────────────────────── */
+const OTA_PLATFORMS = [
+  { name: "Booking.com", color: "#003580", bg: "#EEF2FF", emoji: "🔵" },
+  { name: "Airbnb", color: "#FF385C", bg: "#FFE4E8", emoji: "🔴" },
+  { name: "MakeMyTrip", color: "#EE2E24", bg: "#FFF0EE", emoji: "🟠" },
+  { name: "Goibibo", color: "#F26722", bg: "#FFF4EE", emoji: "🟡" },
+];
+
+const DEMO_GUESTS = [
+  { name: "Priya Sharma", phone: "9812345678", nationality: "India" },
+  { name: "Rahul Mehta", phone: "9876543210", nationality: "India" },
+  { name: "James Wilson", phone: "9988776655", nationality: "United Kingdom" },
+  { name: "Aisha Khan", phone: "9765432109", nationality: "India" },
+  { name: "Chen Wei", phone: "9654321098", nationality: "China" },
+  { name: "Sunita Patel", phone: "9543210987", nationality: "India" },
+  { name: "Ahmed Al-Rashid", phone: "9432109876", nationality: "United Arab Emirates" },
+];
+
+function OTASimulator({ guests, propertyId, user, isTest, onBookingCreated, onClose }: {
+  guests: Guest[]; propertyId: string; user: User; isTest: boolean;
+  onBookingCreated: (guest: Guest) => void; onClose: () => void;
+}) {
+  const vacantRooms = ALL_ROOMS.filter(r => getRoomState(r, guests) === "vacant");
+  const randomGuest = DEMO_GUESTS[Math.floor(Math.random() * DEMO_GUESTS.length)];
+
+  const [platform, setPlatform] = useState(OTA_PLATFORMS[0].name);
+  const [guestName, setGuestName] = useState(randomGuest.name);
+  const [phone, setPhone] = useState(randomGuest.phone);
+  const [checkin, setCheckin] = useState(today);
+  const [checkout, setCheckout] = useState(in2days);
+  const [room, setRoom] = useState(vacantRooms[0] ?? ALL_ROOMS[0]);
+  const [amount, setAmount] = useState("3200");
+  const [guestCount, setGuestCount] = useState(2);
+  const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState<"form" | "animating" | "done">("form");
+
+  const activePlatform = OTA_PLATFORMS.find(p => p.name === platform) ?? OTA_PLATFORMS[0];
+  const nights = Math.max(1, Math.round((new Date(checkout).getTime() - new Date(checkin).getTime()) / 86400000));
+
+  const simulate = async () => {
+    if (!guestName || !checkin || !checkout || !room) return;
+    setSaving(true);
+    setStep("animating");
+
+    // Simulate network delay — makes it feel like it came from outside
+    await new Promise(r => setTimeout(r, 2200));
+
+    const { data, error } = await supabase.from("guests").insert({
+      property_id: propertyId,
+      user_id: user.id,
+      name: guestName,
+      phone,
+      room,
+      status: "Arriving",
+      source: platform,
+      checkin,
+      checkout,
+      nights,
+      guest_count: guestCount,
+      total_charged: parseFloat(amount) || 0,
+      form_complete: false,
+      is_test: isTest,
+      nationality: DEMO_GUESTS.find(g => g.name === guestName)?.nationality ?? "India",
+    }).select().single();
+
+    setSaving(false);
+
+    if (!error && data) {
+      const newGuest: Guest = {
+        id: data.id, name: data.name, room: data.room,
+        status: "Arriving", source: data.source,
+        phone: data.phone, checkin: data.checkin, checkout: data.checkout,
+        nights: data.nights, guestCount: data.guest_count,
+        totalCharged: data.total_charged, formComplete: false,
+        nationality: data.nationality ?? "India",
+      };
+      setStep("done");
+      setTimeout(() => { onBookingCreated(newGuest); onClose(); }, 1800);
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center", fontFamily: FONT }}>
+      <div style={{ background: C.white, borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 500, maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+
+        {/* Animating state */}
+        {step === "animating" && (
+          <div style={{ padding: "60px 24px", textAlign: "center" }}>
+            <div style={{ fontSize: 48, marginBottom: 16, animation: "pulse 1s infinite" }}>📡</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: C.dark, marginBottom: 8 }}>Receiving booking from {platform}...</div>
+            <div style={{ fontSize: 13, color: C.mid, marginBottom: 24 }}>Simulating OTA webhook →  MyStay</div>
+            <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: activePlatform.color, opacity: 0.3 + i * 0.35 }} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Done state */}
+        {step === "done" && (
+          <div style={{ padding: "60px 24px", textAlign: "center" }}>
+            <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#E6F4EA", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 36 }}>✓</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: C.success, marginBottom: 8 }}>Booking received!</div>
+            <div style={{ fontSize: 13, color: C.mid }}>Guest added to dashboard as Arriving</div>
+          </div>
+        )}
+
+        {/* Form state */}
+        {step === "form" && (
+          <>
+            {/* Header */}
+            <div style={{ padding: "20px 20px 0", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: C.dark }}>Simulate OTA Booking</div>
+                <div style={{ fontSize: 12, color: C.mid, marginTop: 2 }}>Demo only — mimics a real webhook</div>
+              </div>
+              <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: C.mid }}>×</button>
+            </div>
+
+            <div style={{ padding: "0 20px 32px" }}>
+
+              {/* Platform selector */}
+              <div style={{ marginBottom: 18 }}>
+                <label style={lbl}>Source Platform</label>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {OTA_PLATFORMS.map(p => (
+                    <button key={p.name} onClick={() => setPlatform(p.name)} style={{ padding: "8px 14px", borderRadius: 24, border: `2px solid ${platform === p.name ? p.color : C.border}`, background: platform === p.name ? p.bg : C.white, color: platform === p.name ? p.color : C.mid, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: FONT, display: "flex", alignItems: "center", gap: 5 }}>
+                      <span>{p.emoji}</span> {p.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Booking ref banner */}
+              <div style={{ background: activePlatform.bg, border: `1px solid ${activePlatform.color}22`, borderRadius: 10, padding: "10px 14px", marginBottom: 18, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: activePlatform.color, fontWeight: 700 }}>Booking Ref: {platform.substring(0, 3).toUpperCase()}-{Math.floor(Math.random() * 90000 + 10000)}</span>
+                <span style={{ fontSize: 11, color: activePlatform.color, opacity: 0.8 }}>Incoming ↓</span>
+              </div>
+
+              {/* Guest name */}
+              <div style={fgrp}>
+                <label style={lbl}>Guest Name</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input style={{ ...inp, flex: 1 }} value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="Guest full name" />
+                  <button onClick={() => { const g = DEMO_GUESTS[Math.floor(Math.random() * DEMO_GUESTS.length)]; setGuestName(g.name); setPhone(g.phone); }} style={{ padding: "0 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.white, cursor: "pointer", fontSize: 11, color: C.mid, fontFamily: FONT, whiteSpace: "nowrap" as const }}>🎲 Random</button>
+                </div>
+              </div>
+
+              {/* Phone */}
+              <div style={fgrp}>
+                <label style={lbl}>Phone</label>
+                <input style={inp} value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone number" />
+              </div>
+
+              {/* Dates */}
+              <div style={{ display: "flex", gap: 10, ...fgrp }}>
+                <div style={{ flex: 1 }}>
+                  <label style={lbl}>Check-in</label>
+                  <input type="date" style={inp} value={checkin} onChange={e => setCheckin(e.target.value)} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={lbl}>Check-out</label>
+                  <input type="date" style={inp} value={checkout} onChange={e => setCheckout(e.target.value)} />
+                </div>
+              </div>
+
+              {/* Room + Guests row */}
+              <div style={{ display: "flex", gap: 10, ...fgrp }}>
+                <div style={{ flex: 1 }}>
+                  <label style={lbl}>Room</label>
+                  <select style={inp} value={room} onChange={e => setRoom(e.target.value)}>
+                    {ALL_ROOMS.map(r => {
+                      const state = getRoomState(r, guests);
+                      return <option key={r} value={r} disabled={state !== "vacant"}>{r}{state !== "vacant" ? ` (${state})` : ""}</option>;
+                    })}
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={lbl}>Guests</label>
+                  <select style={inp} value={guestCount} onChange={e => setGuestCount(+e.target.value)}>
+                    {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n} Guest{n > 1 ? "s" : ""}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Amount */}
+              <div style={fgrp}>
+                <label style={lbl}>Booking Amount (₹)</label>
+                <div style={{ position: "relative" }}>
+                  <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: C.mid }}>₹</div>
+                  <input type="number" style={{ ...inp, paddingLeft: 28 }} value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" />
+                </div>
+                <div style={{ fontSize: 11, color: C.light, marginTop: 4 }}>{nights} night{nights !== 1 ? "s" : ""} · ≈ {fmt(Math.round(parseFloat(amount || "0") / nights))}/night</div>
+              </div>
+
+              {/* Summary preview */}
+              <div style={{ background: "#F7F7F7", borderRadius: 12, padding: "14px 16px", marginBottom: 20 }}>
+                <div style={{ fontSize: 11, color: C.light, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.5px", marginBottom: 10 }}>Booking Preview</div>
+                {[
+                  ["Guest", guestName || "—"],
+                  ["Platform", platform],
+                  ["Room", room],
+                  ["Dates", checkin && checkout ? `${fmtDate(checkin)} → ${fmtDate(checkout)}` : "—"],
+                  ["Amount", fmt(parseFloat(amount || "0"))],
+                ].map(([k, v]) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, color: C.mid }}>{k}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.dark }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button style={btn(activePlatform.color)} onClick={simulate} disabled={saving || !guestName || !checkin || !checkout}>
+                📡 Simulate Incoming Booking →
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ─── DASHBOARD ──────────────────────────────────────────── */
-function Dashboard({ guests, setScreen, setActiveGuest, setPrefill, hotelName, isTest, dailyRevenue, setDailyRevenue, dailyExpenses, propertyId, user, setInsightTab }: {
+function Dashboard({ guests, setScreen, setActiveGuest, setPrefill, hotelName, isTest, dailyRevenue, setDailyRevenue, dailyExpenses, propertyId, user, setInsightTab, onGuestAdded }: {
   guests: Guest[]; setScreen: (s: Screen) => void;
   setActiveGuest: (g: Guest | null) => void; setPrefill: (p: CheckInPrefill) => void;
   hotelName: string; isTest: boolean;
@@ -323,12 +547,14 @@ function Dashboard({ guests, setScreen, setActiveGuest, setPrefill, hotelName, i
   dailyExpenses: DailyExpense[];
   propertyId: string; user: User;
   setInsightTab: (t: InsightTab) => void;
+  onGuestAdded: (g: Guest) => void;
 }) {
   const [revExpanded, setRevExpanded] = useState(false);
   const [addingRev, setAddingRev] = useState(false);
   const [manualAmt, setManualAmt] = useState("");
   const [manualNote, setManualNote] = useState("");
   const [revToast, setRevToast] = useState("");
+  const [showOTASim, setShowOTASim] = useState(false);
 
   const todayRevenue = dailyRevenue.filter(r => r.date === today).reduce((s, r) => s + r.amount, 0);
   const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
@@ -354,6 +580,19 @@ function Dashboard({ guests, setScreen, setActiveGuest, setPrefill, hotelName, i
 
   return (
     <div style={{ paddingBottom: 80, minHeight: "100vh", background: C.bg, fontFamily: FONT }}>
+
+      {/* OTA Simulator Modal */}
+      {showOTASim && (
+        <OTASimulator
+          guests={guests}
+          propertyId={propertyId}
+          user={user}
+          isTest={isTest}
+          onBookingCreated={(g) => { onGuestAdded(g); }}
+          onClose={() => setShowOTASim(false)}
+        />
+      )}
+
       <div style={hdr}>
         <span style={{ width: 36 }} />
         <div style={{ textAlign: "center" }}>
@@ -460,6 +699,15 @@ function Dashboard({ guests, setScreen, setActiveGuest, setPrefill, hotelName, i
         </div>
       </div>
       <div style={{ padding: "4px 12px 16px" }}>
+        {/* OTA Demo Button — test mode only */}
+        {isTest && (
+          <button
+            style={{ ...btn("#003580"), marginBottom: 10 }}
+            onClick={() => setShowOTASim(true)}
+          >
+            📡 Simulate OTA Booking (Demo)
+          </button>
+        )}
         <button style={btn(C.accent)} onClick={() => { setPrefill(null); setActiveGuest(null); setScreen("checkin"); }}>＋ New Check-in</button>
       </div>
       <BottomNav screen="dashboard" setScreen={setScreen} />
@@ -1448,7 +1696,7 @@ export default function App() {
 
   return (
     <div style={{ fontFamily: FONT, width: "100%", margin: 0, minHeight: "100vh", background: C.bg, position: "relative" }}>
-      {screen === "dashboard" && <Dashboard guests={guests} setScreen={navigateTo} setActiveGuest={setActiveGuest} setPrefill={setPrefill} hotelName={hotelName} isTest={isTest} dailyRevenue={dailyRevenue} setDailyRevenue={setDailyRevenue} dailyExpenses={dailyExpenses} propertyId={propertyId} user={user!} setInsightTab={setInsightTab} />}
+      {screen === "dashboard" && <Dashboard guests={guests} setScreen={navigateTo} setActiveGuest={setActiveGuest} setPrefill={setPrefill} hotelName={hotelName} isTest={isTest} dailyRevenue={dailyRevenue} setDailyRevenue={setDailyRevenue} dailyExpenses={dailyExpenses} propertyId={propertyId} user={user!} setInsightTab={setInsightTab} onGuestAdded={(g) => setGuests(prev => [g, ...prev])} />}
       {screen === "guests" && <GuestsScreen guests={guests} setScreen={navigateTo} setActiveGuest={setActiveGuest} propertyInfo={propertyInfo} />}
       {screen === "insights" && <InsightsScreen costs={costs} dailyExpenses={dailyExpenses} dailyRevenue={dailyRevenue} guests={guests} setScreen={navigateTo} initialTab={insightTab} />}
       {screen === "menu" && <MenuScreen setScreen={navigateTo} user={user!} hotelName={hotelName} onSignOut={handleSignOut} />}
