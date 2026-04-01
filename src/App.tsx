@@ -199,20 +199,21 @@ function BottomNav({ screen, setScreen }: { screen: Screen; setScreen: (s: Scree
 }
 
 /* ─── LOGIN SCREEN ───────────────────────────────────────── */
-function LoginScreen() {
-  const [loading, setLoading] = useState(false);
+function LoginScreen({ onLogin }: { onLogin: () => void }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleGoogleLogin = async () => {
+  const handleLogin = () => {
     setLoading(true);
     setError("");
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
-    if (error) { setError(error.message); setLoading(false); }
+    if (username === "mystaysdemo" && password === "12345") {
+      onLogin();
+    } else {
+      setError("Invalid username or password");
+      setLoading(false);
+    }
   };
 
   return (
@@ -228,7 +229,7 @@ function LoginScreen() {
         {/* Login card */}
         <div style={{ background: C.white, borderRadius: 20, padding: 32, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
           <div style={{ fontSize: 20, fontWeight: 700, color: C.dark, marginBottom: 8, fontFamily: FONT }}>Welcome back</div>
-          <div style={{ fontSize: 14, color: C.mid, marginBottom: 32, fontFamily: FONT }}>Sign in to manage your property</div>
+          <div style={{ fontSize: 14, color: C.mid, marginBottom: 24, fontFamily: FONT }}>Sign in to manage your property</div>
 
           {error && (
             <div style={{ background: "#FFE4E8", border: `1px solid ${C.accent}`, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 13, color: C.error, fontFamily: FONT }}>
@@ -236,29 +237,26 @@ function LoginScreen() {
             </div>
           )}
 
+          <div style={fgrp}>
+            <label style={lbl}>Username</label>
+            <input style={inp} value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter username" onKeyDown={e => e.key === "Enter" && handleLogin()} />
+          </div>
+          <div style={fgrp}>
+            <label style={lbl}>Password</label>
+            <input type="password" style={inp} value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" onKeyDown={e => e.key === "Enter" && handleLogin()} />
+          </div>
+
           <button
-            onClick={handleGoogleLogin}
+            onClick={handleLogin}
             disabled={loading}
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, width: "100%", padding: "14px", borderRadius: 12, background: C.white, border: `1.5px solid ${C.border}`, cursor: loading ? "not-allowed" : "pointer", fontSize: 15, fontWeight: 600, color: C.dark, fontFamily: FONT, opacity: loading ? 0.7 : 1 }}
+            style={{ ...btn(C.accent), opacity: loading ? 0.7 : 1, cursor: loading ? "not-allowed" : "pointer" }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-            </svg>
-            {loading ? "Signing in..." : "Continue with Google"}
+            {loading ? "Signing in..." : "Sign In →"}
           </button>
 
-          <div style={{ textAlign: "center", marginTop: 24, fontSize: 12, color: C.light, fontFamily: FONT, lineHeight: 1.6 }}>
-            By signing in you agree to our terms of service. Your data is securely stored and only visible to you.
+          <div style={{ textAlign: "center", marginTop: 20, fontSize: 12, color: C.light, fontFamily: FONT, lineHeight: 1.6 }}>
+            Your data is securely stored and only visible to you.
           </div>
-        </div>
-
-        {/* Test account notice */}
-        <div style={{ marginTop: 20, background: "#FFF8E1", border: `1px solid #FFD54F`, borderRadius: 12, padding: "12px 16px", textAlign: "center" }}>
-          <div style={{ fontSize: 12, color: "#7B5800", fontFamily: FONT, fontWeight: 600, marginBottom: 4 }}>🧪 Testing?</div>
-          <div style={{ fontSize: 11, color: "#9E6B00", fontFamily: FONT }}>Use testmystay@gmail.com to explore with dummy data</div>
         </div>
       </div>
     </div>
@@ -395,14 +393,13 @@ function GuestCard({ guest, onCheckin, onCheckout }: { guest: Guest; onCheckin?:
 }
 
 /* ─── DASHBOARD ──────────────────────────────────────────── */
-function Dashboard({ guests, setScreen, setActiveGuest, setPrefill, hotelName, isTest, dailyRevenue, setDailyRevenue, dailyExpenses, propertyId, user, setPrevScreen }: {
+function Dashboard({ guests, setScreen, setActiveGuest, setPrefill, hotelName, isTest, dailyRevenue, setDailyRevenue, dailyExpenses, propertyId, user }: {
   guests: Guest[]; setScreen: (s: Screen) => void;
   setActiveGuest: (g: Guest | null) => void; setPrefill: (p: CheckInPrefill) => void;
   hotelName: string; isTest: boolean;
   dailyRevenue: DailyRevenue[]; setDailyRevenue: (r: DailyRevenue[]) => void;
   dailyExpenses: DailyExpense[];
   propertyId: string; user: User;
-  setPrevScreen: (s: Screen) => void;
 }) {
   const [revExpanded, setRevExpanded] = useState(false);
   const [addingRev, setAddingRev] = useState(false);
@@ -498,7 +495,7 @@ function Dashboard({ guests, setScreen, setActiveGuest, setPrefill, hotelName, i
             <div style={{ fontSize: 22, fontWeight: 700, color: C.dark, fontFamily: FONT }}>{fmt(weekRevenue)}</div>
             <div style={{ fontSize: 11, color: C.mid, marginTop: 4, fontFamily: FONT }}>Last 7 days</div>
           </div>
-          <div onClick={() => { setPrevScreen("dashboard"); setScreen("dailyExpenses"); }} style={{ background: C.white, borderRadius: 16, padding: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.07)", flex: 1, cursor: "pointer" }}>
+          <div onClick={() => setScreen("dailyExpenses")} style={{ background: C.white, borderRadius: 16, padding: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.07)", flex: 1, cursor: "pointer" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: C.light, textTransform: "uppercase" as const, letterSpacing: "0.6px", marginBottom: 6, fontFamily: FONT }}>Daily Expenses</div>
               <span style={{ color: C.light, fontSize: 16 }}>›</span>
@@ -549,9 +546,75 @@ function Dashboard({ guests, setScreen, setActiveGuest, setPrefill, hotelName, i
 }
 
 /* ─── GUESTS SCREEN ──────────────────────────────────────── */
-function GuestsScreen({ guests, setScreen, setActiveGuest }: { guests: Guest[]; setScreen: (s: Screen) => void; setActiveGuest: (g: Guest | null) => void }) {
+function GuestsScreen({ guests, setScreen, setActiveGuest, propertyInfo }: { guests: Guest[]; setScreen: (s: Screen) => void; setActiveGuest: (g: Guest | null) => void; propertyInfo: PropertyInfo | null }) {
+  const [detailGuest, setDetailGuest] = useState<Guest | null>(null);
+  const [showInvoice, setShowInvoice] = useState(false);
+
+  const buildPayload = (g: Guest): CheckoutPayload => {
+    const nights = g.nights ?? 1;
+    const total = g.totalCharged ?? 0;
+    const roomBase = Math.round(total / 1.12);
+    const gstRate = roomGSTRate(Math.round(roomBase / nights));
+    const halfGST = gstRate / 2;
+    const cgst = +(roomBase * halfGST / 100).toFixed(2);
+    return { total, roomBase, roomGSTRate: gstRate, roomCGST: cgst, roomSGST: cgst, nights, extraCharges: [] };
+  };
+
   return (
     <div style={{ paddingBottom: 80, minHeight: "100vh", background: C.bg, fontFamily: FONT }}>
+      {/* Detail Modal */}
+      {detailGuest && !showInvoice && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 400, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setDetailGuest(null)}>
+          <div style={{ background: C.white, borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 500, padding: "24px 20px 32px", maxHeight: "80vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+            <div style={{ textAlign: "center", marginBottom: 20 }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: C.dark, fontFamily: FONT }}>Guest Details</div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <Avatar name={detailGuest.name} size={48} />
+                <div style={{ fontWeight: 700, fontSize: 16, color: C.dark, fontFamily: FONT }}>{detailGuest.name}</div>
+              </div>
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <span style={{ ...pill("#EEF4FF", C.blue), fontSize: 9, padding: "3px 8px" }}>Room {detailGuest.room}</span>
+                <span style={{ ...pill(detailGuest.source === "Booking.com" ? "#003580" : detailGuest.source === "Airbnb" ? C.accent : "#EFEFEF", detailGuest.source === "Booking.com" || detailGuest.source === "Airbnb" ? "#fff" : C.mid), fontSize: 9, padding: "3px 8px" }}>{detailGuest.source}</span>
+                <StatusPill status={detailGuest.status} />
+              </div>
+            </div>
+            <div style={{ ...card, marginBottom: 12 }}>
+              {[
+                ["Phone", detailGuest.phone || "—"],
+                ["Nationality", detailGuest.nationality || "India"],
+                ["Check-in", detailGuest.checkin ? fmtDate(detailGuest.checkin) : "—"],
+                ["Check-out", detailGuest.checkout ? fmtDate(detailGuest.checkout) : "—"],
+                ["Nights", String(detailGuest.nights ?? "—")],
+                ["Guests", String(detailGuest.guestCount ?? "—")],
+                ["Source", detailGuest.source],
+              ].map(([k, v]) => (
+                <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid #F5F5F5` }}>
+                  <span style={{ fontSize: 13, color: C.mid, fontFamily: FONT }}>{k}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: C.dark, fontFamily: FONT }}>{v}</span>
+                </div>
+              ))}
+            </div>
+            {detailGuest.totalCharged != null && detailGuest.totalCharged > 0 && (
+              <div style={{ ...card, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: C.light, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.5px", fontFamily: FONT }}>Total Charged</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: C.accent, fontFamily: FONT, marginTop: 4 }}>{fmt(detailGuest.totalCharged)}</div>
+                </div>
+                <span style={pill("#E6F4EA", C.success)}>Paid</span>
+              </div>
+            )}
+            {detailGuest.status === "Checked Out" && detailGuest.totalCharged != null && detailGuest.totalCharged > 0 && (
+              <button style={btn(C.dark, "#fff", true)} onClick={() => setShowInvoice(true)}>🧾 View Invoice</button>
+            )}
+          </div>
+        </div>
+      )}
+      {/* Invoice Modal */}
+      {detailGuest && showInvoice && (
+        <InvoiceModal guest={detailGuest} payload={buildPayload(detailGuest)} propertyInfo={propertyInfo} onClose={() => setShowInvoice(false)} />
+      )}
       <div style={hdr}><span style={{ width: 36 }} /><span style={{ fontSize: 17, fontWeight: 700, color: C.dark }}>Guests</span><span style={{ width: 36 }} /></div>
       <div style={{ padding: "12px 12px 0" }}>
         {guests.length === 0 && <div style={{ textAlign: "center", padding: "60px 0", color: C.light, fontSize: 14 }}>No guests yet</div>}
@@ -574,7 +637,7 @@ function GuestsScreen({ guests, setScreen, setActiveGuest }: { guests: Guest[]; 
             {(g.checkin || g.checkout) && <div style={{ fontSize: 12, color: C.light, marginBottom: 10, paddingLeft: 52 }}>{g.checkin && fmtDate(g.checkin)} → {g.checkout && fmtDate(g.checkout)}</div>}
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               {g.status === "Staying" && <button style={smallBtn("primary")} onClick={() => { setActiveGuest(g); setScreen("checkout"); }}>Check-out →</button>}
-              {g.status === "Checked Out" && <button style={smallBtn("outline")}>View Details</button>}
+              {g.status === "Checked Out" && <button style={smallBtn("outline")} onClick={() => { setDetailGuest(g); setShowInvoice(false); }}>View Details</button>}
             </div>
           </div>
         ))}
@@ -585,7 +648,7 @@ function GuestsScreen({ guests, setScreen, setActiveGuest }: { guests: Guest[]; 
 }
 
 /* ─── INSIGHTS SCREEN ────────────────────────────────────── */
-function InsightsScreen({ costs, dailyExpenses, dailyRevenue, setScreen }: { costs: CostItem[]; dailyExpenses: DailyExpense[]; dailyRevenue: DailyRevenue[]; setScreen: (s: Screen) => void }) {
+function InsightsScreen({ costs, dailyExpenses, dailyRevenue, guests, setScreen }: { costs: CostItem[]; dailyExpenses: DailyExpense[]; dailyRevenue: DailyRevenue[]; guests: Guest[]; setScreen: (s: Screen) => void }) {
   const [view, setView] = useState<"week" | "month" | "custom">("week");
   const [customStart, setCustomStart] = useState("2026-03-01");
   const [customEnd, setCustomEnd] = useState(today);
@@ -681,6 +744,59 @@ function InsightsScreen({ costs, dailyExpenses, dailyRevenue, setScreen }: { cos
               <MetricCard label="Est. Profit" value={fmt(weeklyProfit)} sub={`${weeklyMargin}% margin`} color={weeklyProfit >= 0 ? C.success : C.error} />
               <MetricCard label="Avg / Day" value={fmt(Math.round(weeklyRevenue / 7))} sub="Per day" />
             </div>
+            {(() => {
+              const platformMap = new Map<string, { bookings: number; revenue: number }>();
+              guests.forEach(g => {
+                const src = g.source || "Other";
+                const prev = platformMap.get(src) || { bookings: 0, revenue: 0 };
+                platformMap.set(src, { bookings: prev.bookings + 1, revenue: prev.revenue + (g.totalCharged ?? 0) });
+              });
+              const platforms = Array.from(platformMap.entries()).sort((a, b) => b[1].revenue - a[1].revenue);
+              const totalBookings = platforms.reduce((s, [, v]) => s + v.bookings, 0);
+              const totalPlatformRev = platforms.reduce((s, [, v]) => s + v.revenue, 0);
+              const platformColors: Record<string, string> = { "Booking.com": "#003580", "Airbnb": C.accent, "Walk-in": "#6B52E8", "Owner Check-in": C.success, "MakeMyTrip": "#EE2E24", "Goibibo": "#F26722", "Agoda": "#5B9BD5" };
+              return (
+                <div style={{ ...card, marginBottom: 14 }}>
+                  <div style={secTitle}>Bookings</div>
+                  <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+                    <div style={{ background: "#F7F7F7", borderRadius: 12, padding: "12px 14px", flex: 1, textAlign: "center" }}>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: C.dark, fontFamily: FONT }}>{totalBookings}</div>
+                      <div style={{ fontSize: 10, color: C.light, marginTop: 2, fontFamily: FONT }}>Total Bookings</div>
+                    </div>
+                    <div style={{ background: "#F7F7F7", borderRadius: 12, padding: "12px 14px", flex: 1, textAlign: "center" }}>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: C.dark, fontFamily: FONT }}>{platforms.length}</div>
+                      <div style={{ fontSize: 10, color: C.light, marginTop: 2, fontFamily: FONT }}>Platforms</div>
+                    </div>
+                    <div style={{ background: "#F7F7F7", borderRadius: 12, padding: "12px 14px", flex: 1, textAlign: "center" }}>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: C.accent, fontFamily: FONT }}>{fmt(totalPlatformRev)}</div>
+                      <div style={{ fontSize: 10, color: C.light, marginTop: 2, fontFamily: FONT }}>Total Revenue</div>
+                    </div>
+                  </div>
+                  {platforms.map(([src, data]) => {
+                    const pct = totalPlatformRev > 0 ? Math.round((data.revenue / totalPlatformRev) * 100) : 0;
+                    const barColor = platformColors[src] ?? C.mid;
+                    return (
+                      <div key={src} style={{ marginBottom: 14 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: "50%", background: barColor, flexShrink: 0 }} />
+                            <span style={{ fontSize: 13, fontWeight: 600, color: C.dark, fontFamily: FONT }}>{src}</span>
+                          </div>
+                          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                            <span style={{ ...pill("#F5F5F5", C.mid), fontSize: 10 }}>{data.bookings} booking{data.bookings !== 1 ? "s" : ""}</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: C.dark, fontFamily: FONT }}>{fmt(data.revenue)}</span>
+                          </div>
+                        </div>
+                        <div style={{ height: 6, background: "#F0F0F0", borderRadius: 3, overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${pct}%`, background: barColor, borderRadius: 3, transition: "width 0.3s" }} />
+                        </div>
+                        <div style={{ fontSize: 10, color: C.light, marginTop: 2, fontFamily: FONT }}>{pct}% of revenue</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
             <div style={card}>
               <div style={secTitle}>Daily Revenue — Last 7 Days</div>
               {/* Daily profit indicator */}
@@ -951,7 +1067,7 @@ function DailyExpensesPage({ dailyExpenses, setDailyExpenses, user, propertyId, 
 
 /* ─── MENU SCREEN ────────────────────────────────────────── */
 function MenuScreen({ setScreen, user, hotelName, onSignOut }: {
-  setScreen: (s: Screen) => void; user: User; hotelName: string; onSignOut: () => void;
+  setScreen: (s: Screen) => void; user: User | null; hotelName: string; onSignOut: () => void;
 }) {
   const items = [
     { icon: "💰", label: "Monthly Costs", action: () => setScreen("costProfile"), danger: false },
@@ -969,7 +1085,7 @@ function MenuScreen({ setScreen, user, hotelName, onSignOut }: {
           <div style={{ width: 52, height: 52, borderRadius: 14, background: "#FFE4E8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🏨</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 16, color: C.dark, fontFamily: FONT }}>{hotelName}</div>
-            <div style={{ color: C.mid, fontSize: 13, marginTop: 2, fontFamily: FONT }}>{user.email}</div>
+            <div style={{ color: C.mid, fontSize: 13, marginTop: 2, fontFamily: FONT }}>{user?.email ?? "mystaysdemo"}</div>
           </div>
           <button onClick={() => setScreen("costProfile")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: C.accent, fontWeight: 700, fontFamily: FONT }}>Edit →</button>
         </div>
@@ -1137,12 +1253,13 @@ const DEFAULT_EXTRA: ExtraCharge[] = [
 
 function Checkout({ guest, setScreen, onCheckout }: { guest: Guest; setScreen: (s: Screen) => void; onCheckout: (p: CheckoutPayload) => void }) {
   const [roomRate, setRoomRate] = useState(3200);
-  const [editing, setEditing] = useState(false);
   const [extras, setExtras] = useState<ExtraCharge[]>(DEFAULT_EXTRA);
   const [payStatus, setPayStatus] = useState("Fully Paid");
   const [payMethod, setPayMethod] = useState("Cash");
   const nextId = useRef(10);
-  const nights = 1;
+  const nights = guest.checkin && guest.checkout
+    ? Math.max(1, Math.round((new Date(guest.checkout).getTime() - new Date(guest.checkin).getTime()) / 86400000))
+    : 1;
   const gstRate = roomGSTRate(roomRate);
   const halfGST = gstRate / 2;
   const roomBase = roomRate * nights;
@@ -1160,7 +1277,7 @@ function Checkout({ guest, setScreen, onCheckout }: { guest: Guest; setScreen: (
     <div style={{ paddingBottom: 80, minHeight: "100vh", background: C.bg, fontFamily: FONT }}>
       <div style={hdr}><button style={hdrIcon} onClick={() => setScreen("dashboard")}>←</button><div style={{ textAlign: "center" }}><div style={{ fontSize: 17, fontWeight: 700, color: C.dark }}>Check-out</div><div style={{ fontSize: 12, color: C.mid }}>{guest.name}</div></div><span style={{ width: 36 }} /></div>
       <div style={{ padding: "12px 12px 0" }}>
-        <div style={card}><div style={{ display: "flex", gap: 12, alignItems: "center" }}><Avatar name={guest.name} size={40} /><div><div style={{ fontWeight: 700, fontSize: 15, color: C.dark, fontFamily: FONT }}>{guest.name}</div><div style={{ display: "flex", gap: 6, marginTop: 4 }}><span style={{ ...pill("#EEF4FF", C.blue), fontSize: 11 }}>Room {guest.room}</span><OTATag source={guest.source} /></div></div></div></div>
+        <div style={card}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ display: "flex", gap: 12, alignItems: "center" }}><Avatar name={guest.name} size={40} /><div style={{ fontWeight: 700, fontSize: 15, color: C.dark, fontFamily: FONT }}>{guest.name}</div></div><div style={{ display: "flex", gap: 6 }}><span style={{ ...pill("#EEF4FF", C.blue), fontSize: 11 }}>Room {guest.room}</span><OTATag source={guest.source} /></div></div></div>
         {guest.nationality && guest.nationality !== "India" && guest.nationality !== "Nepal" && (
           <div style={{ background: "#FFF8E1", border: `1px solid #FFD54F`, borderRadius: 12, padding: "12px 14px", marginBottom: 12, display: "flex", gap: 10, alignItems: "center" }}>
             <span style={{ fontSize: 18 }}>🛂</span>
@@ -1175,9 +1292,9 @@ function Checkout({ guest, setScreen, onCheckout }: { guest: Guest; setScreen: (
           </div>
         )}
         <div style={card}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}><div style={{ fontSize: 15, fontWeight: 700, color: C.dark, fontFamily: FONT }}>Charges</div><button onClick={() => setEditing(e => !e)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: C.mid, fontWeight: 600, fontFamily: FONT }}>{editing ? "Done" : "✏️ Edit Rate"}</button></div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}><div style={{ fontSize: 15, fontWeight: 700, color: C.dark, fontFamily: FONT }}>Charges</div></div>
           <div style={{ marginBottom: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}><span style={{ fontSize: 14, color: C.dark, fontWeight: 500, fontFamily: FONT }}>Room ({nights} night)</span>{editing ? <input type="number" value={roomRate} onChange={e => setRoomRate(+e.target.value || 0)} style={{ ...inp, width: 90, textAlign: "right", padding: "8px 10px" }} /> : <span style={{ fontWeight: 700, fontFamily: FONT }}>{fmt(roomBase)}</span>}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}><span style={{ fontSize: 14, color: C.dark, fontWeight: 500, fontFamily: FONT }}>Room ({nights} night{nights !== 1 ? "s" : ""})</span><input type="number" value={roomRate} onChange={e => setRoomRate(+e.target.value || 0)} style={{ ...inp, width: 90, textAlign: "right", padding: "8px 10px" }} /></div>
             {gstRate > 0 && <div style={{ paddingLeft: 12 }}><div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontSize: 11, color: C.light, fontFamily: FONT }}>CGST {halfGST}%</span><span style={{ fontSize: 11, color: C.light, fontFamily: FONT }}>{fmt(roomCGST)}</span></div><div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontSize: 11, color: C.light, fontFamily: FONT }}>SGST {halfGST}%</span><span style={{ fontSize: 11, color: C.light, fontFamily: FONT }}>{fmt(roomSGST)}</span></div></div>}
           </div>
           <div style={{ borderTop: `1px solid #F5F5F5`, paddingTop: 12, marginBottom: 12 }}>
@@ -1293,6 +1410,11 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [prevScreen, setPrevScreen] = useState<Screen>("dashboard");
+
+  const navigateTo = (next: Screen) => {
+    setPrevScreen(screen);
+    setScreen(next);
+  };
   const [guests, setGuests] = useState<Guest[]>([]);
   const [activeGuest, setActiveGuest] = useState<Guest | null>(null);
   const [prefill, setPrefill] = useState<CheckInPrefill>(null);
@@ -1310,15 +1432,29 @@ export default function App() {
   /* ── Auth listener ── */
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      if (session?.user) setUser(session.user);
       setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      if (session?.user) setUser(session.user);
       setLoading(false);
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  const handleStaticLogin = async () => {
+    // Sign in with Supabase using the demo account
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: "testmystay@gmail.com",
+      password: "mystay12345",
+    });
+    if (!error && data.user) {
+      setUser(data.user);
+    }
+    setLoggedIn(true);
+  };
 
   /* ── Load data when user logs in ── */
   useEffect(() => {
@@ -1378,6 +1514,7 @@ export default function App() {
     await supabase.auth.signOut();
     setUser(null); setGuests([]); setCosts([]); setDailyExpenses([]);
     setScreen("dashboard"); setPropertyId(""); setHotelName("My Hotel");
+    setLoggedIn(false);
   };
 
   const handleOnboardingComplete = async (newCosts: CostItem[]) => {
@@ -1434,7 +1571,7 @@ export default function App() {
   };
 
   if (loading) return <LoadingScreen />;
-  if (!user) return <LoginScreen />;
+  if (!user && !loggedIn) return <LoginScreen onLogin={handleStaticLogin} />;
 
   if (screen === "onboarding" && user) {
     return <OnboardingScreen user={user} isTest={isTest} onComplete={handleOnboardingComplete} />;
@@ -1442,16 +1579,16 @@ export default function App() {
 
   return (
     <div style={{ fontFamily: FONT, width: "100%", margin: 0, minHeight: "100vh", background: C.bg, position: "relative" }}>
-      {screen === "dashboard" && <Dashboard guests={guests} setScreen={setScreen} setActiveGuest={setActiveGuest} setPrefill={setPrefill} hotelName={hotelName} isTest={isTest} dailyRevenue={dailyRevenue} setDailyRevenue={setDailyRevenue} dailyExpenses={dailyExpenses} propertyId={propertyId} user={user!} setPrevScreen={setPrevScreen} />}
-      {screen === "guests" && <GuestsScreen guests={guests} setScreen={setScreen} setActiveGuest={setActiveGuest} />}
-      {screen === "insights" && <InsightsScreen costs={costs} dailyExpenses={dailyExpenses} dailyRevenue={dailyRevenue} setScreen={setScreen} />}
-      {screen === "menu" && <MenuScreen setScreen={setScreen} user={user} hotelName={hotelName} onSignOut={handleSignOut} />}
-      {screen === "costProfile" && propertyId && <CostProfilePage costs={costs} setCosts={setCosts} user={user} propertyId={propertyId} isTest={isTest} setScreen={setScreen} />}
-      {screen === "dailyExpenses" && propertyId && <DailyExpensesPage dailyExpenses={dailyExpenses} setDailyExpenses={setDailyExpenses} user={user} propertyId={propertyId} isTest={isTest} setScreen={setScreen} returnScreen={prevScreen} />}
-      {screen === "checkin" && user && propertyId && <CheckInForm setScreen={setScreen} prefill={prefill} guests={guests} user={user} propertyId={propertyId} isTest={isTest} onComplete={handleCheckinComplete} />}
-      {screen === "confirmation" && confirmData && <Confirmation data={confirmData} setScreen={setScreen} />}
-      {screen === "checkout" && activeGuest && <Checkout guest={activeGuest} setScreen={setScreen} onCheckout={handleCheckout} />}
-      {screen === "checkoutSummary" && activeGuest && checkoutPayload && <CheckoutSummary guest={activeGuest} payload={checkoutPayload} setScreen={setScreen} propertyInfo={propertyInfo} />}
+      {screen === "dashboard" && <Dashboard guests={guests} setScreen={navigateTo} setActiveGuest={setActiveGuest} setPrefill={setPrefill} hotelName={hotelName} isTest={isTest} dailyRevenue={dailyRevenue} setDailyRevenue={setDailyRevenue} dailyExpenses={dailyExpenses} propertyId={propertyId} user={user!} />}
+      {screen === "guests" && <GuestsScreen guests={guests} setScreen={navigateTo} setActiveGuest={setActiveGuest} propertyInfo={propertyInfo} />}
+      {screen === "insights" && <InsightsScreen costs={costs} dailyExpenses={dailyExpenses} dailyRevenue={dailyRevenue} guests={guests} setScreen={navigateTo} />}
+      {screen === "menu" && <MenuScreen setScreen={navigateTo} user={user} hotelName={hotelName} onSignOut={handleSignOut} />}
+      {screen === "costProfile" && propertyId && <CostProfilePage costs={costs} setCosts={setCosts} user={user} propertyId={propertyId} isTest={isTest} setScreen={navigateTo} />}
+      {screen === "dailyExpenses" && propertyId && <DailyExpensesPage dailyExpenses={dailyExpenses} setDailyExpenses={setDailyExpenses} user={user} propertyId={propertyId} isTest={isTest} setScreen={navigateTo} returnScreen={prevScreen} />}
+      {screen === "checkin" && user && propertyId && <CheckInForm setScreen={navigateTo} prefill={prefill} guests={guests} user={user} propertyId={propertyId} isTest={isTest} onComplete={handleCheckinComplete} />}
+      {screen === "confirmation" && confirmData && <Confirmation data={confirmData} setScreen={navigateTo} />}
+      {screen === "checkout" && activeGuest && <Checkout guest={activeGuest} setScreen={navigateTo} onCheckout={handleCheckout} />}
+      {screen === "checkoutSummary" && activeGuest && checkoutPayload && <CheckoutSummary guest={activeGuest} payload={checkoutPayload} setScreen={navigateTo} propertyInfo={propertyInfo} />}
     </div>
   );
 }
